@@ -47,7 +47,7 @@ impl<'a> Parser<'a> {
         Ok(Program { functions })
     }
 
-    fn parse_function(&mut self) -> Result<Function, ParseError> {
+    fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
         // Placeholder implementation
         self.expect(TokenKind::Fn)?;
 
@@ -94,7 +94,7 @@ impl<'a> Parser<'a> {
 
         let body = self.parse_block()?;
 
-        Ok(Function { name, params, body })
+        Ok(FunctionDecl { name, params, body })
     }
 
     fn parse_block(&mut self) -> Result<Vec<Stmt>, ParseError> {

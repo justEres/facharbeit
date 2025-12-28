@@ -1,9 +1,7 @@
 
 
-fn my_function(x, y) -> Int {
-    if (1 == 1){
-        print(2);
-    }
+fn main(x, y) -> Int {
+    return x + y;
 }
 
 

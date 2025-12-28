@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
+wasm-encoder = "0.243.0"
+wasmtime = "40.0.0"

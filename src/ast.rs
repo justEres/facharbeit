@@ -44,7 +44,7 @@ pub enum Stmt {
 }
 
 #[derive(Debug)]
-pub struct Function {
+pub struct FunctionDecl {
     pub name: String,
     pub params: Vec<String>,
     pub body: Vec<Stmt>,
@@ -52,5 +52,5 @@ pub struct Function {
 
 #[derive(Debug)]
 pub struct Program {
-    pub functions: Vec<Function>,
+    pub functions: Vec<FunctionDecl>,
 }
