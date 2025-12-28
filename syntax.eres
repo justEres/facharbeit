@@ -1,7 +1,9 @@
 
 
 fn main(x, y) -> Int {
-    return x + y;
+    let a = 6;
+
+    return y - a;
 }
 
 

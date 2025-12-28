@@ -5,7 +5,6 @@ use wasmtime::{Engine, Instance, Store};
 
 use crate::codegen::module::ModuleGen;
 
-
 mod ast;
 mod codegen;
 mod lexer;
@@ -39,7 +38,6 @@ fn main() {
 
             let bytes = module_gen.finish();
 
-
             Some(bytes)
         }
         Err(e) => {
@@ -48,27 +46,24 @@ fn main() {
         }
     };
 
-
-
     //run
 
-    if let Some(bytes) = bytes{
+    if let Some(bytes) = bytes {
+        let wat = wasmprinter::print_bytes(&bytes).unwrap();
+        println!("Generated WAT:\n{}", wat);
+
         let engine = Engine::default();
-        let module = wasmtime::Module::from_binary(&engine,&bytes).unwrap();
+        let module = wasmtime::Module::from_binary(&engine, &bytes).unwrap();
 
         let mut store = Store::new(&engine, ());
         let instance = Instance::new(&mut store, &module, &[]).unwrap();
 
-        let main = instance.get_typed_func::<(i64,i64),i64>(&mut store, "main").unwrap();
+        let main = instance
+            .get_typed_func::<(i64, i64), i64>(&mut store, "main")
+            .unwrap();
 
-        let result = main.call(&mut store, (3,4)).unwrap();
+        let result = main.call(&mut store, (64, 8)).unwrap();
 
         println!("result of main function: {}", result)
-        
     }
-
-
-
 }
-
-

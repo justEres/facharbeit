@@ -58,7 +58,7 @@ impl ModuleGen {
         let mut r#gen = FuncGen {
             locals: Vec::new(),
             local_map: HashMap::new(),
-            body: Function::new(Vec::new()),
+            instructions: Vec::new(),
         };
 
         for (i, name) in func.params.iter().enumerate() {
@@ -69,16 +69,16 @@ impl ModuleGen {
             emit_stmt(stmt, &mut r#gen, &self.func_indices);
         }
 
-        r#gen.body.instruction(&Instruction::I64Const(0));
-        r#gen.body.instruction(&Instruction::Return);
-        r#gen.body.instruction(&Instruction::End);
+        r#gen.instructions.push(Instruction::I64Const(0));
+        r#gen.instructions.push(Instruction::Return);
+        r#gen.instructions.push(Instruction::End);
 
-        self.codes.function(&r#gen.body);
+        self.codes.function(&r#gen.instructions);
     }
 }
 
-pub struct FuncGen {
+pub struct FuncGen<'a> {
     pub locals: Vec<ValType>,
     pub local_map: HashMap<String, u32>,
-    pub body: Function,
+    pub instructions: Vec<Instruction>, //TODO: Custom Ir to first declare locals and later generate instructions
 }
