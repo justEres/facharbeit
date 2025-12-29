@@ -5,6 +5,7 @@ use crate::token::*;
 
 //recursive descent
 
+#[derive(Debug)]
 pub struct Parser<'a> {
     tokens: &'a [Token],
     pos: usize,
@@ -30,6 +31,7 @@ impl<'a> Parser<'a> {
         if tok.kind == kind {
             Ok(tok)
         } else {
+
             Err(ParseError::UnexpectedToken {
                 expected: kind.name(),
                 found: tok,
@@ -66,7 +68,7 @@ impl<'a> Parser<'a> {
 
         self.expect(TokenKind::LParen)?;
 
-        //TODO: Type hints, since only integer ignore for now
+
         let mut params = Vec::new();
         if self.peek().kind != TokenKind::RParen {
             loop {
@@ -150,7 +152,9 @@ impl<'a> Parser<'a> {
 
     fn parse_if(&mut self) -> Result<Stmt, ParseError> {
         self.expect(TokenKind::If)?;
+
         let cond = self.parse_expr()?;
+
         let then_block = self.parse_block()?;
 
         let else_block = if self.peek().kind == TokenKind::Else {
@@ -182,11 +186,14 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
+        dbg!(&self);
         self.parse_equality()
     }
 
     fn parse_equality(&mut self) -> Result<Expr, ParseError> {
+
         let mut expr = self.parse_term()?;
+
 
         while self.peek().kind == TokenKind::EqualEqual {
             self.bump();
@@ -226,6 +233,7 @@ impl<'a> Parser<'a> {
     fn parse_factor(&mut self) -> Result<Expr, ParseError> {
         let mut expr = self.parse_primary()?;
 
+
         while matches!(self.peek().kind, TokenKind::Star | TokenKind::Slash) {
             let op = match self.bump().kind {
                 TokenKind::Star => BinOp::Mul,
@@ -247,10 +255,12 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Result<Expr, ParseError> {
         let tok = self.bump().clone();
 
+
         match tok.kind {
             TokenKind::Int(value) => Ok(Expr::Int(value)),
 
             TokenKind::Ident(name) => {
+
                 if self.peek().kind == TokenKind::LParen {
                     self.bump(); // '('
                     let mut args = Vec::new();
@@ -266,9 +276,12 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
+
+
                     self.expect(TokenKind::RParen)?;
                     Ok(Expr::Call { name, args })
                 } else {
+
                     Ok(Expr::Local(name))
                 }
             }

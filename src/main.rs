@@ -25,6 +25,7 @@ fn main() {
 
     let bytes = match lexer::lex_file(&src) {
         Ok(tokens) => {
+            dbg!(&tokens);
             let mut parser = parser::Parser::new(&tokens);
             let ast = parser.parse_program().unwrap();
 

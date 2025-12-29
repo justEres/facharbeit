@@ -4,6 +4,7 @@ use crate::{
 };
 use std::collections::HashMap;
 use wasm_encoder::*;
+use crate::codegen::ir::IrInstruction;
 
 pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>) {
     match stmt {
@@ -13,17 +14,17 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>)
             r#gen.local_map.insert(name.clone(), idx);
 
             emit_expr(value, r#gen, funcs);
-            r#gen.body.instruction(&Instruction::LocalSet(idx));
+            r#gen.instructions.push(IrInstruction::LocalSet(idx));
         }
 
         Stmt::Expr(expr) => {
             emit_expr(expr, r#gen, funcs);
-            r#gen.body.instruction(&Instruction::Drop); // why the drop?
+            r#gen.instructions.push(IrInstruction::Drop); // why the drop?
         }
 
         Stmt::Return(expr) => {
             emit_expr(expr, r#gen, funcs);
-            r#gen.body.instruction(&Instruction::Return);
+            r#gen.instructions.push(IrInstruction::Return);
         }
 
         Stmt::If {
@@ -32,39 +33,39 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>)
             else_block,
         } => {
             emit_expr(cond, r#gen, funcs);
-            r#gen.body.instruction(&Instruction::If(BlockType::Empty)); // what does empty do?
+            r#gen.instructions.push(IrInstruction::If(BlockType::Empty)); // what does empty do?
 
             for s in then_block {
                 emit_stmt(s, r#gen, funcs);
             }
 
             if !else_block.is_empty() {
-                r#gen.body.instruction(&Instruction::Else);
+                r#gen.instructions.push(IrInstruction::Else);
                 for s in else_block {
                     emit_stmt(stmt, r#gen, funcs);
                 }
             }
 
-            r#gen.body.instruction(&Instruction::End);
+            r#gen.instructions.push(IrInstruction::End);
         }
 
         Stmt::While { cond, body } => {
             r#gen
-                .body
-                .instruction(&Instruction::Block(BlockType::Empty));
-            r#gen.body.instruction(&Instruction::Loop(BlockType::Empty));
+                .instructions
+                .push(IrInstruction::Block(BlockType::Empty));
+            r#gen.instructions.push(IrInstruction::Loop(BlockType::Empty));
 
             emit_expr(cond, r#gen, funcs);
-            r#gen.body.instruction(&Instruction::I64Eqz);
-            r#gen.body.instruction(&Instruction::BrIf(1));
+            r#gen.instructions.push(IrInstruction::I64Eqz);
+            r#gen.instructions.push(IrInstruction::BrIf(1));
 
             for s in body {
                 emit_stmt(s, r#gen, funcs);
             }
 
-            r#gen.body.instruction(&Instruction::Br(0));
-            r#gen.body.instruction(&Instruction::End);
-            r#gen.body.instruction(&Instruction::End);
+            r#gen.instructions.push(IrInstruction::Br(0));
+            r#gen.instructions.push(IrInstruction::End);
+            r#gen.instructions.push(IrInstruction::End);
         }
     }
 }

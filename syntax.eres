@@ -1,9 +1,11 @@
 
 
 fn main(x, y) -> Int {
-    let a = 6;
-
-    return y - a;
+    if (x > 5) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 

@@ -1,6 +1,7 @@
 use std::{boxed, collections::HashMap, hash::Hash};
 
 use wasm_encoder::*;
+use crate::codegen::ir::IrInstruction;
 
 use crate::{
     ast::{FunctionDecl, Stmt},
@@ -69,16 +70,33 @@ impl ModuleGen {
             emit_stmt(stmt, &mut r#gen, &self.func_indices);
         }
 
-        r#gen.instructions.push(Instruction::I64Const(0));
-        r#gen.instructions.push(Instruction::Return);
-        r#gen.instructions.push(Instruction::End);
+        r#gen.instructions.push(IrInstruction::I64Const(0));
+        r#gen.instructions.push(IrInstruction::Return);
+    
 
-        self.codes.function(&r#gen.instructions);
+        let mut local_groups = Vec::new();
+        for ty in r#gen.locals{
+            local_groups.push((1,ty));
+        }
+
+        let mut wasm_func = Function::new(local_groups);
+
+        for instr in r#gen.instructions{
+            wasm_func.instruction(&instr.to_wasm());
+        }
+
+        wasm_func.instruction(&Instruction::End);
+
+                
+
+        self.codes.function(&wasm_func);
+
+
     }
 }
 
-pub struct FuncGen<'a> {
+pub struct FuncGen {
     pub locals: Vec<ValType>,
     pub local_map: HashMap<String, u32>,
-    pub instructions: Vec<Instruction>, //TODO: Custom Ir to first declare locals and later generate instructions
+    pub instructions: Vec<IrInstruction>, //TODO: Custom Ir to first declare locals and later generate instructions
 }
