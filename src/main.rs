@@ -1,5 +1,3 @@
-use std::fs;
-
 use clap::Parser;
 use wasmtime::{Engine, Instance, Store};
 
@@ -11,12 +9,26 @@ mod lexer;
 mod parser;
 mod token;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
 struct Args {
+    /// Input source file
     input: String,
+
+    /// Print tokens produced by the lexer
+    #[arg(long, default_value_t = false)]
+    print_tokens: bool,
+
+    /// Print the parsed AST
+    #[arg(long, default_value_t = false)]
+    print_ast: bool,
+
+    /// Print generated WAT before running
+    #[arg(long, default_value_t = false)]
+    print_wat: bool,
 }
 
-//Buchstabensuppeverarbeitungsmaschine
+// Buchstabensuppeverarbeitungsmaschine
 
 fn main() {
     let args = Args::parse();
@@ -25,21 +37,25 @@ fn main() {
 
     let bytes = match lexer::lex_file(&src) {
         Ok(tokens) => {
-            dbg!(&tokens);
+            if args.print_tokens {
+                println!("Tokens:\n{:#?}", tokens);
+            }
+
             let mut parser = parser::Parser::new(&tokens);
             let ast = parser.parse_program().unwrap();
 
-            dbg!(&ast);
+            if args.print_ast {
+                println!("AST:\n{:#?}", ast);
+            }
 
             let mut module_gen = ModuleGen::new();
 
             module_gen.declare_function(&ast.functions[0]);
-
             module_gen.emit_function(&ast.functions[0]);
 
             let bytes = module_gen.finish();
 
-            Some(bytes)
+            Some((bytes, args.print_wat))
         }
         Err(e) => {
             lexer::report_lex_error(&src, e);
@@ -47,11 +63,12 @@ fn main() {
         }
     };
 
-    //run
-
-    if let Some(bytes) = bytes {
+    // run
+    if let Some((bytes, print_wat)) = bytes {
         let wat = wasmprinter::print_bytes(&bytes).unwrap();
-        println!("Generated WAT:\n{}", wat);
+        if print_wat {
+            println!("Generated WAT:\n{}", wat);
+        }
 
         let engine = Engine::default();
         let module = wasmtime::Module::from_binary(&engine, &bytes).unwrap();

@@ -301,7 +301,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
-        dbg!(&self);
+
         self.parse_binary_expr(0)
     }
 
