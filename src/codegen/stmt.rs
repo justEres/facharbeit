@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use wasm_encoder::*;
 use crate::codegen::ir::IrInstruction;
 
-pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>) {
+pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32, bool)>) {
     match stmt {
         Stmt::Let { name, value } => {
             let idx = r#gen.local_map.len() as u32;
@@ -18,12 +18,29 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>)
         }
 
         Stmt::Expr(expr) => {
-            emit_expr(expr, r#gen, funcs);
-            r#gen.instructions.push(IrInstruction::Drop); // why the drop?
+            // Only drop the expression result if the expression actually left
+            // a value on the stack. emit_expr now returns true when it
+            // pushed a value.
+            let produced = emit_expr(expr, r#gen, funcs);
+            if produced {
+                r#gen.instructions.push(IrInstruction::Drop);
+            }
         }
 
-        Stmt::Return(expr) => {
-            emit_expr(expr, r#gen, funcs);
+        Stmt::Return(expr_opt) => {
+            match expr_opt {
+                Some(expr) => {
+                    emit_expr(expr, r#gen, funcs);
+                }
+                None => {
+                    // If the function declares a return type, supply a default 0 value.
+                    if r#gen.has_return {
+                        r#gen.instructions.push(IrInstruction::I64Const(0));
+                    }
+                    // otherwise return with no value
+                }
+            }
+
             r#gen.instructions.push(IrInstruction::Return);
         }
 

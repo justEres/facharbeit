@@ -1,0 +1,15 @@
+
+
+// factorial example
+fn fact(n) -> Int {
+    if (n <= 1) {
+        return 1;
+    } else {
+        return n * fact(n - 1);
+    }
+}
+
+fn main(){
+    print(fact(5));
+    return;
+}

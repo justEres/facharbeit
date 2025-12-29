@@ -265,9 +265,15 @@ impl<'a> Parser<'a> {
     fn parse_return(&mut self) -> Result<Stmt, ParseError> {
         self.expect(TokenKind::Return)?;
 
-        let expr = self.parse_expr()?;
-        self.expect(TokenKind::Semicolon)?;
-        Ok(Stmt::Return(expr))
+        // Allow `return;` with no expression. If present, parse an expression.
+        if self.peek().kind == TokenKind::Semicolon {
+            self.bump();
+            Ok(Stmt::Return(None))
+        } else {
+            let expr = self.parse_expr()?;
+            self.expect(TokenKind::Semicolon)?;
+            Ok(Stmt::Return(Some(expr)))
+        }
     }
 
     fn parse_if(&mut self) -> Result<Stmt, ParseError> {

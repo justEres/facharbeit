@@ -1,4 +1,5 @@
 use wasmtime::{Engine, Instance, Store, Val};
+use std::sync::{Arc, Mutex};
 
 use crate::codegen::module::ModuleGen;
 use crate::lexer::lex_file;
@@ -12,7 +13,8 @@ pub fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
         .parse_program()
         .map_err(|e| format!("parse error: {:?}", e))?;
 
-    let mut module_gen = ModuleGen::new();
+    // Create module generator and register host imports (print)
+    let mut module_gen = ModuleGen::new().init_with_host_functions();
     for func in &program.functions {
         module_gen.declare_function(func);
     }
@@ -32,7 +34,13 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
         .map_err(|e| format!("module compile error: {}", e))?;
 
     let mut store = Store::new(&engine, ());
-    let instance = Instance::new(&mut store, &module, &[])
+
+    // create host print function
+    let print_func = wasmtime::Func::wrap(&mut store, |v: i64| {
+        println!("{}", v);
+    });
+
+    let instance = Instance::new(&mut store, &module, &[print_func.into()])
         .map_err(|e| format!("instance error: {}", e))?;
 
     let func = instance
@@ -99,5 +107,36 @@ mod tests {
     let out = run_wasm_bytes(&bytes, vec![2, 1]).expect_err("expected error due to wrong arg count");
         // We only check that calling with wrong args returns an Err; actual happy-path tested elsewhere.
         let _ = out;
+    }
+
+    #[test]
+    fn print_statement_outputs() {
+        // inline source instead of reading a file
+        let src = "fn main(){ print(3); return; }";
+
+        let bytes = compile_bytes_from_src(src).expect("compile failed");
+
+        // instantiate module with a host `print_i64` that records values
+        let engine = Engine::default();
+        let module = wasmtime::Module::from_binary(&engine, &bytes).expect("module compile failed");
+
+        let printed: Arc<Mutex<Vec<i64>>> = Arc::new(Mutex::new(Vec::new()));
+
+        let mut store = Store::new(&engine, ());
+        let captured = printed.clone();
+        let print_func = wasmtime::Func::wrap(&mut store, move |v: i64| {
+            captured.lock().unwrap().push(v);
+        });
+
+        let instance = Instance::new(&mut store, &module, &[print_func.into()]).expect("instance creation failed");
+
+        let func = instance.get_func(&mut store, "main").expect("main not found");
+        let params: Vec<Val> = Vec::new();
+        let mut results_buf: Vec<Val> = Vec::new();
+
+        func.call(&mut store, &params, &mut results_buf).expect("call failed");
+
+        let got = printed.lock().unwrap().clone();
+        assert_eq!(got, vec![3]);
     }
 }

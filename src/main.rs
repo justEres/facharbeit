@@ -50,13 +50,27 @@ fn main() {
             }
 
             let mut module_gen = ModuleGen::new();
+            module_gen = module_gen.init_with_host_functions();
 
-            module_gen.declare_function(&ast.functions[0]);
-            module_gen.emit_function(&ast.functions[0]);
+            // Declare and emit all functions in the input so cross-calls work.
+            for func in &ast.functions {
+                module_gen.declare_function(func);
+            }
+            for func in &ast.functions {
+                module_gen.emit_function(func);
+            }
 
             let bytes = module_gen.finish();
 
-            Some((bytes, args.print_wat))
+            // Determine the parameter count of the exported `main` function if it exists.
+            let main_param_count = ast
+                .functions
+                .iter()
+                .find(|f| f.name == "main")
+                .map(|f| f.params.len())
+                .unwrap_or(0);
+
+            Some((bytes, args.print_wat, main_param_count))
         }
         Err(e) => {
             lexer::report_lex_error(&src, e);
@@ -65,13 +79,16 @@ fn main() {
     };
 
     // run
-    if let Some((bytes, print_wat)) = bytes {
+    if let Some((bytes, print_wat, param_count)) = bytes {
         let wat = wasmprinter::print_bytes(&bytes).unwrap();
         if print_wat {
             println!("Generated WAT:\n{}", wat);
         }
 
-        match runner::run_wasm_bytes(&bytes, vec![64, 8]) {
+        // Prepare zero-initialized i64 args matching the function's param count.
+        let args: Vec<i64> = vec![0; param_count];
+
+        match runner::run_wasm_bytes(&bytes, args) {
             Ok(Some(result)) => println!("result of main function: {}", result),
             Ok(None) => println!("main returned no value"),
             Err(e) => eprintln!("Execution error: {}", e),

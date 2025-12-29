@@ -33,7 +33,7 @@ pub enum Stmt {
         name: String,
         value: Expr,
     },
-    Return(Expr),
+    Return(Option<Expr>),
     Expr(Expr),
     If {
         cond: Expr,
