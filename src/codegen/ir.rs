@@ -2,8 +2,6 @@ use wasm_encoder::{BlockType, Instruction};
 
 
 
-
-
 pub enum IrInstruction{
     I64Const(i64),
     I64Eqz,

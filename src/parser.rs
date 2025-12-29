@@ -205,12 +205,18 @@ impl<'a> Parser<'a> {
         }
 
         self.expect(TokenKind::RParen)?;
-        self.expect(TokenKind::Arrow)?;
-        self.expect(TokenKind::IntType)?;
-
+        // optional return type
+        let return_type = if self.peek().kind == TokenKind::Arrow {
+            self.bump();
+            // currently only Int type supported
+            self.expect(TokenKind::IntType)?;
+            Some(crate::ast::Type::Int)
+        } else {
+            None
+        };
         let body = self.parse_block()?;
 
-        Ok(FunctionDecl { name, params, body })
+        Ok(FunctionDecl { name, params, body, return_type })
     }
 
     fn parse_block(&mut self) -> Result<Vec<Stmt>, ParseError> {

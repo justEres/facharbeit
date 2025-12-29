@@ -71,8 +71,9 @@ fn main() {
             println!("Generated WAT:\n{}", wat);
         }
 
-        match runner::run_wasm_bytes(&bytes, (64, 8)) {
-            Ok(result) => println!("result of main function: {}", result),
+        match runner::run_wasm_bytes(&bytes, vec![64, 8]) {
+            Ok(Some(result)) => println!("result of main function: {}", result),
+            Ok(None) => println!("main returned no value"),
             Err(e) => eprintln!("Execution error: {}", e),
         }
     }

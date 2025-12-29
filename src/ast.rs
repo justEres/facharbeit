@@ -51,6 +51,12 @@ pub struct FunctionDecl {
     pub name: String,
     pub params: Vec<String>,
     pub body: Vec<Stmt>,
+    pub return_type: Option<Type>,
+}
+
+#[derive(Debug)]
+pub enum Type {
+    Int,
 }
 
 #[derive(Debug)]

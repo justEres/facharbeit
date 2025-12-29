@@ -44,9 +44,14 @@ impl ModuleGen {
         let type_index = self.next_type_index;
         self.next_type_index += 1;
 
-        self.types
-            .ty()
-            .function(vec![ValType::I64; func.params.len()], [ValType::I64]);
+        let params = vec![ValType::I64; func.params.len()];
+        let results = if func.return_type.is_some() {
+            vec![ValType::I64]
+        } else {
+            Vec::new()
+        };
+
+        self.types.ty().function(params, results);
 
         let idx = self.func_indices.len() as u32;
         self.func_indices.insert(func.name.clone(), idx);
@@ -70,8 +75,13 @@ impl ModuleGen {
             emit_stmt(stmt, &mut r#gen, &self.func_indices);
         }
 
-        r#gen.instructions.push(IrInstruction::I64Const(0));
-        r#gen.instructions.push(IrInstruction::Return);
+        // If the function has a return type but no explicit return was emitted,
+        // provide a default 0 return so the function type matches. If no return
+        // type is declared, don't emit a return value.
+        if func.return_type.is_some() {
+            r#gen.instructions.push(IrInstruction::I64Const(0));
+            r#gen.instructions.push(IrInstruction::Return);
+        }
     
 
         let mut local_groups = Vec::new();
