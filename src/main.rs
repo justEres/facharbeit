@@ -1,5 +1,5 @@
 use clap::Parser;
-use wasmtime::{Engine, Instance, Store};
+// runner handles executing wasm; main doesn't need direct wasmtime imports anymore
 
 use crate::codegen::module::ModuleGen;
 
@@ -8,6 +8,7 @@ mod codegen;
 mod lexer;
 mod parser;
 mod token;
+mod runner;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -70,18 +71,9 @@ fn main() {
             println!("Generated WAT:\n{}", wat);
         }
 
-        let engine = Engine::default();
-        let module = wasmtime::Module::from_binary(&engine, &bytes).unwrap();
-
-        let mut store = Store::new(&engine, ());
-        let instance = Instance::new(&mut store, &module, &[]).unwrap();
-
-        let main = instance
-            .get_typed_func::<(i64, i64), i64>(&mut store, "main")
-            .unwrap();
-
-        let result = main.call(&mut store, (64, 8)).unwrap();
-
-        println!("result of main function: {}", result)
+        match runner::run_wasm_bytes(&bytes, (64, 8)) {
+            Ok(result) => println!("result of main function: {}", result),
+            Err(e) => eprintln!("Execution error: {}", e),
+        }
     }
 }

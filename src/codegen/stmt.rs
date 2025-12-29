@@ -33,6 +33,10 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>)
             else_block,
         } => {
             emit_expr(cond, r#gen, funcs);
+            // emit_expr produces i64 for comparisons and integers; Wasm `if` expects an i32
+            // convert i64 (0/1) -> i32 boolean: i64.eqz -> i32 (1 if zero), then i32.eqz to invert
+            r#gen.instructions.push(IrInstruction::I64Eqz);
+            r#gen.instructions.push(IrInstruction::I32Eqz);
             r#gen.instructions.push(IrInstruction::If(BlockType::Empty)); // what does empty do?
 
             for s in then_block {

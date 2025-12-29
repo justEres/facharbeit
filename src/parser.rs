@@ -1,4 +1,3 @@
-use std::mem::MaybeUninit;
 
 use crate::ast::*;
 use crate::token::*;

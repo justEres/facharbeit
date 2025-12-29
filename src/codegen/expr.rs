@@ -27,23 +27,36 @@ pub fn emit_expr(expr: &Expr, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>)
                 BinOp::Sub => r#gen.instructions.push(IrInstruction::I64Sub),
                 BinOp::Mul => r#gen.instructions.push(IrInstruction::I64Mul),
                 BinOp::Div => r#gen.instructions.push(IrInstruction::I64DivS),
-                BinOp::Eq => r#gen.instructions.push(IrInstruction::I64Eq),
-                BinOp::Lt => r#gen.instructions.push(IrInstruction::I64LtS),
-                BinOp::Gt => r#gen.instructions.push(IrInstruction::I64GtS),
+                BinOp::Eq => {
+                    r#gen.instructions.push(IrInstruction::I64Eq);
+                    // extend i32 -> i64 so expressions consistently produce i64 values
+                    r#gen.instructions.push(IrInstruction::I64ExtendI32S);
+                }
+                BinOp::Lt => {
+                    r#gen.instructions.push(IrInstruction::I64LtS);
+                    r#gen.instructions.push(IrInstruction::I64ExtendI32S);
+                }
+                BinOp::Gt => {
+                    r#gen.instructions.push(IrInstruction::I64GtS);
+                    r#gen.instructions.push(IrInstruction::I64ExtendI32S);
+                }
                 // Not equal: emit Eq then Eqz
                 BinOp::NotEq => {
                     r#gen.instructions.push(IrInstruction::I64Eq);
                     r#gen.instructions.push(IrInstruction::I64Eqz);
+                    r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }
                 // <=  -> !(a > b)  =>  I64GtS ; I64Eqz
                 BinOp::Le => {
                     r#gen.instructions.push(IrInstruction::I64GtS);
                     r#gen.instructions.push(IrInstruction::I64Eqz);
+                    r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }
                 // >=  -> !(a < b)  =>  I64LtS ; I64Eqz
                 BinOp::Ge => {
                     r#gen.instructions.push(IrInstruction::I64LtS);
                     r#gen.instructions.push(IrInstruction::I64Eqz);
+                    r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }
             }
         }

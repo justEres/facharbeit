@@ -1,10 +1,10 @@
-use std::{boxed, collections::HashMap, hash::Hash};
+use std::collections::HashMap;
 
 use wasm_encoder::*;
 use crate::codegen::ir::IrInstruction;
 
 use crate::{
-    ast::{FunctionDecl, Stmt},
+    ast::FunctionDecl,
     codegen::stmt::emit_stmt,
 };
 

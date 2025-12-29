@@ -28,10 +28,12 @@ pub enum IrInstruction{
     I64Eq,
     I64LtS,
     I64GtS,
+    I64ExtendI32S,
+    I32Eqz,
 }
 
 impl IrInstruction{
-    pub fn to_wasm(&self) -> Instruction{
+    pub fn to_wasm(&self) -> Instruction<'_>{
         match self {
             IrInstruction::I64Const(v) => Instruction::I64Const(*v),
             IrInstruction::I64Eqz => Instruction::I64Eqz,
@@ -54,6 +56,8 @@ impl IrInstruction{
             IrInstruction::I64Eq => Instruction::I64Eq,
             IrInstruction::I64LtS => Instruction::I64LtS,
             IrInstruction::I64GtS => Instruction::I64GtS,
+            IrInstruction::I64ExtendI32S => Instruction::I64ExtendI32S,
+            IrInstruction::I32Eqz => Instruction::I32Eqz,
         }
     }
 }

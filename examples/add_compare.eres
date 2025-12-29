@@ -1,0 +1,1 @@
+fn main(a, b) -> Int { let z = a + 1 < b; return z; }
