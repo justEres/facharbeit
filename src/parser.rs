@@ -11,6 +11,121 @@ pub struct Parser<'a> {
     pos: usize,
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lexer::lex_file;
+
+    #[test]
+    fn parse_paren_comparison() {
+        let src = "fn main(x, y) -> Int { if (x < y) { return 1; } else { return 0; } }";
+        let tokens = lex_file(src).expect("lex");
+        let mut p = Parser::new(&tokens);
+        let program = p.parse_program().expect("parse");
+
+        // one function
+        assert_eq!(program.functions.len(), 1);
+        let f = &program.functions[0];
+        assert_eq!(f.body.len(), 1);
+
+        match &f.body[0] {
+            Stmt::If { cond, then_block, else_block } => {
+                // cond should be Binary with Lt
+                match cond {
+                    Expr::Binary { op, left, right } => {
+                        match op {
+                            BinOp::Lt => (),
+                            _ => panic!("expected Lt op"),
+                        }
+
+                        match (&**left, &**right) {
+                            (Expr::Local(l), Expr::Local(r)) => {
+                                assert_eq!(l, "x");
+                                assert_eq!(r, "y");
+                            }
+                            _ => panic!("expected locals in comparison"),
+                        }
+                    }
+                    _ => panic!("expected binary cond"),
+                }
+
+                assert_eq!(then_block.len(), 1);
+                assert_eq!(else_block.len(), 1);
+            }
+            _ => panic!("expected if statement"),
+        }
+    }
+
+    #[test]
+    fn parse_mixed_precedence() {
+        let src = "fn main(x, y) -> Int { let z = x + 1 < y; }";
+        let tokens = lex_file(src).expect("lex");
+        let mut p = Parser::new(&tokens);
+        let program = p.parse_program().expect("parse");
+        let f = &program.functions[0];
+
+        match &f.body[0] {
+            Stmt::Let { name, value } => {
+                assert_eq!(name, "z");
+                match value {
+                    Expr::Binary { op, left, right } => {
+                        match op {
+                            BinOp::Lt => (),
+                            _ => panic!("expected Lt op"),
+                        }
+                        match &**left {
+                            Expr::Binary { op: lop, left: lleft, right: _lright } => {
+                                match lop {
+                                    BinOp::Add => (),
+                                    _ => panic!("expected Add as left op"),
+                                }
+                                // left operand of add should be local x
+                                match &**lleft {
+                                    Expr::Local(n) => assert_eq!(n, "x"),
+                                    _ => panic!("expected local x"),
+                                }
+                            }
+                            _ => panic!("expected binary left side"),
+                        }
+                        match &**right {
+                            Expr::Local(n) => assert_eq!(n, "y"),
+                            _ => panic!("expected local y"),
+                        }
+                    }
+                    _ => panic!("expected binary value"),
+                }
+            }
+            _ => panic!("expected let statement"),
+        }
+    }
+
+    #[test]
+    fn parse_parenthesized_complex() {
+        let src = "fn main(a,b,c,d) -> Int { let r = (a + b) <= (c - d); }";
+        let tokens = lex_file(src).expect("lex");
+        let mut p = Parser::new(&tokens);
+        let program = p.parse_program().expect("parse");
+        let f = &program.functions[0];
+
+        match &f.body[0] {
+            Stmt::Let { name, value } => {
+                assert_eq!(name, "r");
+                match value {
+                    Expr::Binary { op, left, right } => {
+                        match op {
+                            BinOp::Le => (),
+                            _ => panic!("expected Le op"),
+                        }
+                    }
+                    _ => panic!("expected binary value"),
+                }
+            }
+            _ => panic!("expected let statement"),
+        }
+    }
+}
+
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [Token]) -> Parser<'a> {
         Parser { tokens, pos: 0 }
@@ -187,69 +302,60 @@ impl<'a> Parser<'a> {
 
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
         dbg!(&self);
-        self.parse_equality()
+        self.parse_binary_expr(0)
     }
 
-    fn parse_equality(&mut self) -> Result<Expr, ParseError> {
+    // Precedence-climbing / Pratt-style binary expression parser
+    // min_prec: minimum precedence to accept in this call
+    fn parse_binary_expr(&mut self, min_prec: u8) -> Result<Expr, ParseError> {
+        // 1. parse left-hand side primary
+        let mut lhs = self.parse_primary()?;
 
-        let mut expr = self.parse_term()?;
-
-
-        while self.peek().kind == TokenKind::EqualEqual {
-            self.bump();
-            let rhs = self.parse_term()?;
-            expr = Expr::Binary {
-                op: BinOp::Eq,
-                left: Box::new(expr),
-                right: Box::new(rhs),
-            };
-        }
-
-        Ok(expr)
-    }
-
-    fn parse_term(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.parse_factor()?;
-
-        while matches!(self.peek().kind, TokenKind::Plus | TokenKind::Minus) {
-            let op = match self.bump().kind {
-                TokenKind::Plus => BinOp::Add,
-                TokenKind::Minus => BinOp::Sub,
-                _ => unreachable!(),
+        loop {
+            // 2. check if next token is a binary operator and get its precedence
+            let (op, prec) = match self.token_to_binop_prec(&self.peek().kind) {
+                Some(x) => x,
+                None => break,
             };
 
-            let rhs = self.parse_factor()?;
-
-            expr = Expr::Binary {
-                op,
-                left: Box::new(expr),
-                right: Box::new(rhs),
-            };
-        }
-
-        Ok(expr)
-    }
-
-    fn parse_factor(&mut self) -> Result<Expr, ParseError> {
-        let mut expr = self.parse_primary()?;
-
-
-        while matches!(self.peek().kind, TokenKind::Star | TokenKind::Slash) {
-            let op = match self.bump().kind {
-                TokenKind::Star => BinOp::Mul,
-                TokenKind::Slash => BinOp::Div,
-                _ => unreachable!(),
-            };
-
-            let rhs = self.parse_primary()?;
-            expr = Expr::Binary {
-                op,
-                left: Box::new(expr),
-                right: Box::new(rhs),
+            if prec < min_prec {
+                break;
             }
+
+            // 3. consume operator
+            self.bump();
+
+            // 4. parse RHS with higher precedence (left-associative operators use prec+1)
+            let next_min = prec + 1;
+            let rhs = self.parse_binary_expr(next_min)?;
+
+            // 5. build binary node and continue
+            lhs = Expr::Binary {
+                op,
+                left: Box::new(lhs),
+                right: Box::new(rhs),
+            };
         }
 
-        Ok(expr)
+        Ok(lhs)
+    }
+
+    // Map a token kind to (BinOp, precedence). Higher number = higher precedence.
+    // Precedence levels (high -> low): * / = 4, + - = 3, < > <= >= = 2, == != = 1
+    fn token_to_binop_prec(&self, kind: &TokenKind) -> Option<(BinOp, u8)> {
+        match kind {
+            TokenKind::Star => Some((BinOp::Mul, 4)),
+            TokenKind::Slash => Some((BinOp::Div, 4)),
+            TokenKind::Plus => Some((BinOp::Add, 3)),
+            TokenKind::Minus => Some((BinOp::Sub, 3)),
+            TokenKind::Less => Some((BinOp::Lt, 2)),
+            TokenKind::LessEqual => Some((BinOp::Le, 2)),
+            TokenKind::Greater => Some((BinOp::Gt, 2)),
+            TokenKind::GreaterEqual => Some((BinOp::Ge, 2)),
+            TokenKind::EqualEqual => Some((BinOp::Eq, 1)),
+            TokenKind::NotEqual => Some((BinOp::NotEq, 1)),
+            _ => None,
+        }
     }
 
     fn parse_primary(&mut self) -> Result<Expr, ParseError> {
@@ -296,6 +402,7 @@ impl<'a> Parser<'a> {
     }
 }
 
+#[allow(dead_code, unused_variables)]
 #[derive(Debug)]
 pub enum ParseError {
     UnexpectedToken { expected: String, found: Token },

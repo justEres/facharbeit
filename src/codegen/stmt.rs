@@ -42,7 +42,7 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, u32>)
             if !else_block.is_empty() {
                 r#gen.instructions.push(IrInstruction::Else);
                 for s in else_block {
-                    emit_stmt(stmt, r#gen, funcs);
+                    emit_stmt(s, r#gen, funcs);
                 }
             }
 

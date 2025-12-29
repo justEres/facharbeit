@@ -98,6 +98,17 @@ impl<'a> Lexer<'a> {
                     TokenKind::Equal
                 }
             }
+            '!' => {
+                if let Some('=') = self.peek() {
+                    self.bump();
+                    TokenKind::NotEqual
+                } else {
+                    return Err(LexError::UnexpectedChar {
+                        ch: '!',
+                        span: self.span_from(start),
+                    });
+                }
+            }
             c if c.is_ascii_digit() => self.lex_number(c)?,
             c if Lexer::is_ident_start(c) => self.lex_ident(c),
 
@@ -223,5 +234,26 @@ pub fn report_lex_error(src: &str, error: LexError) {
                 span.start, span.end
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lex_simple_tokens() {
+        let src = "( ) { } ; + - * / % , : -> <= < >= > == != ->";
+        // include arrow twice intentionally
+        let tokens = lex_file(src).expect("lexing failed");
+        // ensure EOF is last
+        assert_eq!(tokens.last().unwrap().kind, TokenKind::EOF);
+        // Check that some known tokens appear in order (spot check)
+        let kinds: Vec<_> = tokens.iter().map(|t| &t.kind).collect();
+        assert!(kinds.contains(&&TokenKind::LParen));
+        assert!(kinds.contains(&&TokenKind::LessEqual));
+        assert!(kinds.contains(&&TokenKind::GreaterEqual));
+        assert!(kinds.contains(&&TokenKind::EqualEqual));
+        assert!(kinds.contains(&&TokenKind::NotEqual));
     }
 }
