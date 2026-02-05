@@ -1,0 +1,39 @@
+wasm-spec:
+  type: web
+  title: WebAssembly Core Specification
+  author: WebAssembly Community Group
+  year: 2023
+  url: https://webassembly.github.io/spec/
+  accessed: 2026-01-21
+
+mdn-wasm:
+  type: web
+  title: WebAssembly
+  author: MDN Web Docs
+  year: 2024
+  url: https://developer.mozilla.org/en-US/docs/WebAssembly
+  accessed: 2026-01-21
+
+bytecode-alliance:
+  type: web
+  title: Bytecode Alliance – WebAssembly outside the Browser
+  author: Bytecode Alliance
+  year: 2024
+  url: https://bytecodealliance.org/
+  accessed: 2026-01-21
+
+wiki-compiler:
+  type: web
+  title: Compiler
+  author: Wikipedia
+  year: 2026
+  url: https://en.wikipedia.org/wiki/Compiler
+  accessed: 2026-02-04
+
+radford-compiler-phases:
+  type: web
+  title: Compiler Phases
+  author: Radford University
+  year: 2024
+  url: https://sites.radford.edu/~nokie/classes/380/phases.html
+  accessed: 2026-02-04

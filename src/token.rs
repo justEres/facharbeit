@@ -38,7 +38,7 @@ pub enum TokenKind {
 
     //Type Hints
     Colon,
-    Arrow,
+    Arrow, 
     IntType,
 
     EOF,
@@ -65,3 +65,5 @@ pub struct Span {
     pub start: usize,
     pub end: usize,
 }
+
+

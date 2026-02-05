@@ -1,0 +1,6 @@
+
+
+fn main(){
+    print(12/3);
+    return;
+}

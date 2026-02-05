@@ -1,0 +1,9 @@
+// add example
+fn add(a, b) -> Int {
+    return a + b;
+}
+
+fn main(){
+    print(add(7, 5));
+    return;
+}
