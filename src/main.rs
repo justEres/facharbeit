@@ -1,5 +1,4 @@
 use clap::Parser;
-// runner handles executing wasm; main doesn't need direct wasmtime imports anymore
 
 use crate::codegen::module::ModuleGen;
 
@@ -7,8 +6,8 @@ mod ast;
 mod codegen;
 mod lexer;
 mod parser;
-mod token;
 mod runner;
+mod token;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -28,8 +27,6 @@ struct Args {
     #[arg(long, default_value_t = false)]
     print_wat: bool,
 }
-
-// Buchstabensuppeverarbeitungsmaschine
 
 fn main() {
     let args = Args::parse();
@@ -52,7 +49,7 @@ fn main() {
             let mut module_gen = ModuleGen::new();
             module_gen = module_gen.init_with_host_functions();
 
-            // Declare and emit all functions in the input so cross-calls work.
+            // Declare first, then emit, so functions can reference each other.
             for func in &ast.functions {
                 module_gen.declare_function(func);
             }
@@ -62,7 +59,7 @@ fn main() {
 
             let bytes = module_gen.finish();
 
-            // Determine the parameter count of the exported `main` function if it exists.
+            // Determine the arity of main to prepare call arguments.
             let main_param_count = ast
                 .functions
                 .iter()
@@ -78,7 +75,6 @@ fn main() {
         }
     };
 
-    // run
     if let Some((bytes, print_wat, param_count)) = bytes {
         let wat = wasmprinter::print_bytes(&bytes).unwrap();
         if print_wat {

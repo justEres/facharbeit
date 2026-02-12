@@ -1,18 +1,12 @@
 use std::collections::HashMap;
 
-
-
 use crate::{
     ast::{BinOp, Expr},
-    codegen::module::FuncGen,
     codegen::ir::IrInstruction,
+    codegen::module::FuncGen,
 };
 
-pub fn emit_expr(
-    expr: &Expr,
-    r#gen: &mut FuncGen,
-    funcs: &HashMap<String, (u32, bool)>,
-) -> bool {
+pub fn emit_expr(expr: &Expr, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32, bool)>) -> bool {
     match expr {
         Expr::Int(v) => {
             r#gen.instructions.push(IrInstruction::I64Const(*v));
@@ -23,7 +17,6 @@ pub fn emit_expr(
             r#gen.instructions.push(IrInstruction::LocalGet(idx));
             true
         }
-
         Expr::Binary { op, left, right } => {
             let _ = emit_expr(left, r#gen, funcs);
             let _ = emit_expr(right, r#gen, funcs);
@@ -35,7 +28,7 @@ pub fn emit_expr(
                 BinOp::Div => r#gen.instructions.push(IrInstruction::I64DivS),
                 BinOp::Eq => {
                     r#gen.instructions.push(IrInstruction::I64Eq);
-                    // extend i32 -> i64 so expressions consistently produce i64 values
+                    // Keep expression results as i64 across the compiler.
                     r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }
                 BinOp::Lt => {
@@ -46,24 +39,21 @@ pub fn emit_expr(
                     r#gen.instructions.push(IrInstruction::I64GtS);
                     r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }
-                // Not equal: emit Eq then Eqz
+                // a != b  =>  !(a == b)
                 BinOp::NotEq => {
                     r#gen.instructions.push(IrInstruction::I64Eq);
-                    // I64Eq produces an i32; use I32Eqz to invert that i32
                     r#gen.instructions.push(IrInstruction::I32Eqz);
                     r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }
-                // <=  -> !(a > b)  =>  I64GtS ; I64Eqz
+                // a <= b  =>  !(a > b)
                 BinOp::Le => {
                     r#gen.instructions.push(IrInstruction::I64GtS);
-                    // I64GtS produces i32; invert with I32Eqz
                     r#gen.instructions.push(IrInstruction::I32Eqz);
                     r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }
-                // >=  -> !(a < b)  =>  I64LtS ; I64Eqz
+                // a >= b  =>  !(a < b)
                 BinOp::Ge => {
                     r#gen.instructions.push(IrInstruction::I64LtS);
-                    // I64LtS produces i32; invert with I32Eqz
                     r#gen.instructions.push(IrInstruction::I32Eqz);
                     r#gen.instructions.push(IrInstruction::I64ExtendI32S);
                 }

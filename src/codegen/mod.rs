@@ -1,4 +1,4 @@
 mod expr;
+mod ir;
 pub mod module;
 mod stmt;
-mod ir;

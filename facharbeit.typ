@@ -21,6 +21,20 @@
 #show heading.where(level: 1): set text(size: 13pt)
 
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
+#import "vendor/codly/codly.typ": *
+
+#show: codly-init.with()
+#codly(
+  number-format: none,
+  zebra-fill: none,
+  stroke: none,
+  lang-stroke: none,
+  lang-fill: none,
+  display-name: false,
+  display-icon: false,
+  breakable: true,
+  smart-indent: true,
+)
 
 #let code-box(body) = box(
   width: 100%,
@@ -28,7 +42,19 @@
   inset: 6pt,
 )[
   #set text(size: 9pt)
+  #set text(hyphenate: false)
+  #set par(justify: false)
   #body
+]
+
+#let source-file(path, lang: "text") = [
+=== #path
+[
+  #set text(size: 9pt)
+  #set text(hyphenate: false)
+  #set par(justify: false)
+  #raw(read(path), block: true, lang: lang)
+]
 ]
 #align(center)[
   #v(3cm)
@@ -108,35 +134,55 @@ als Compilation Target für Hobby-Compiler bewertet.
 
 = Compiler
 == Was ist ein Compiler?
-- Übersetzt Quellcode in eine andere Darstellung (meist maschinennahe Form).
-- Zielformen: Maschinencode, Bytecode oder Zwischenrepräsentation (IR) zur Weiterverarbeitung.
-- Abgrenzung zu Interpreter: Interpreter führt Code direkt aus, Compiler erzeugt ausführbare Repräsentation.
-- Vorteil: schnellere Ausführung, Optimierungen vorab möglich.
-- Nachteil: zusätzlicher Übersetzungsschritt, Fehler erst beim Kompilieren sichtbar.
+// - Übersetzt Quellcode in eine andere Darstellung (meist maschinennahe Form).
+// - Zielformen: Maschinencode, Bytecode oder Zwischenrepräsentation (IR) zur Weiterverarbeitung.
+// - Abgrenzung zu Interpreter: Interpreter führt Code direkt aus, Compiler erzeugt ausführbare Repräsentation.
+// - Vorteil: schnellere Ausführung, Optimierungen vorab möglich.
+// - Nachteil: zusätzlicher Übersetzungsschritt, Fehler erst beim Kompilieren sichtbar.
 
-Einen Compiler ist ein Programm, welches Programmcode in eine andere für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine Virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da 
+Einen Compiler ist ein Programm, welches Programmcode in eine andere für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine Virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können.
+
+Zusätzliche Stichpunkte:
+- Der Übersetzungsvorgang wird in der Praxis oft als Teil einer Toolchain betrachtet (inkl. Assembler und Linker) @gcc-overall-options.
+- Für Entwickler ist wichtig: Compiler-Fehler sind Diagnoseausgaben zur Übersetzungszeit und treten vor der Programmausführung auf @gcc-overall-options.
 
 
 
 == Aufbau eines Compilers (Frontend, Backend)
-- Eingabephase: Quellcode wird gelesen und in Tokens zerlegt (Lexing).
-- Syntaxanalyse: Parser baut einen Syntaxbaum (AST).
-- Semantische Analyse: Typprüfung, Namensauflösung, Fehlerdiagnosen.
-- Zwischenrepräsentation (IR): vereinheitlichte Form für Optimierungen.
-- Optimierungen: z.B. konstante Ausdrücke ausrechnen, ungenutzten Code entfernen.
-- Backend: IR in Zielcode übersetzen (z.B. Maschinencode oder WASM).
-- Codeerzeugung: Registerallokation, Instruktionsauswahl, Plattformdetails.
-- Ausgabe: Binärdatei, Objektdatei oder Bytecode.
+// - Eingabephase: Quellcode wird gelesen und in Tokens zerlegt (Lexing).
+// - Syntaxanalyse: Parser baut einen Syntaxbaum (AST).
+// - Semantische Analyse: Typprüfung, Namensauflösung, Fehlerdiagnosen.
+// - Zwischenrepräsentation (IR): vereinheitlichte Form für Optimierungen.
+// - Optimierungen: z.B. konstante Ausdrücke ausrechnen, ungenutzten Code entfernen.
+// - Backend: IR in Zielcode übersetzen (z.B. Maschinencode oder WASM).
+// - Codeerzeugung: Registerallokation, Instruktionsauswahl, Plattformdetails.
+// - Ausgabe: Binärdatei, Objektdatei oder Bytecode.
+
+Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgegrenzte Aufgaben übernehmen: Lexing (Erzeugung von Token aus Quelltext), Parsing (Aufbau eines abstrakten Syntaxbaums, AST), semantische Analyse (Typprüfung, Namensauflösung, Scope- und Fehlerprüfung), eine Zwischenrepräsentation und Optimierungsphase (IR‑Transformationen, konstante Auswertung, Dead‑Code‑Elimination) sowie das Backend (Code‑ bzw. Bytecode‑Generierung, z. B. für WebAssembly). Diese Modularität erleichtert Entwicklung, Testbarkeit und Wiederverwendbarkeit der einzelnen Komponenten.
+
+Zusätzliche Stichpunkte:
+- Die Trennung in Frontend und Backend erlaubt, mehrere Sprachen auf dasselbe Backend abzubilden.
+- Zwischenrepräsentationen entkoppeln Sprachsyntax und Zielplattform und erleichtern Optimierungen @llvm-langref.
+- In realen Toolchains werden Vorverarbeitung, Kompilierung, Assemblierung und Linking als getrennte Schritte modelliert @gcc-overall-options.
+
 Quellen: @wiki-compiler; @radford-compiler-phases
 
 == Einführung in WebAssembly
-- WebAssembly (WASM): binäres, plattformunabhängiges Ausführungsformat.
-- Entstanden als Ziel für Webbrowser, inzwischen auch für Server und Tools nutzbar.
-- Ziel: nahe an nativer Geschwindigkeit, aber portabel und sicher.
-- Struktur: Module mit Funktionen, Speicher, Tabellen, Imports/Exports.
-- Ausführung in einer Sandbox; Zugriff auf Systemfunktionen über Host-Imports.
-- Unterstützte Sprachen: z.B. C/C++, Rust, AssemblyScript (via Compiler-Toolchains).
-- Relevanz für Compilerbau: einheitliches Target, weniger Plattformdetails im Backend.
+// - WebAssembly (WASM): binäres, plattformunabhängiges Ausführungsformat.
+// - Entstanden als Ziel für Webbrowser, inzwischen auch für Server und Tools nutzbar.
+// - Ziel: nahe an nativer Geschwindigkeit, aber portabel und sicher.
+// - Struktur: Module mit Funktionen, Speicher, Tabellen, Imports/Exports.
+// - Ausführung in einer Sandbox; Zugriff auf Systemfunktionen über Host-Imports.
+// - Unterstützte Sprachen: z.B. C/C++, Rust, AssemblyScript (via Compiler-Toolchains).
+// - Relevanz für Compilerbau: einheitliches Target, weniger Plattformdetails im Backend.
+
+WebAssembly (WASM) ist ein binäres, plattformunabhängiges Ausführungsformat, das ursprünglich für die Ausführung in Webbrowsern entwickelt wurde, aber inzwischen auch außerhalb des Webs, z.B. auf Servern oder in Tools, genutzt werden kann. Es zielt darauf ab, eine nahe an nativer Geschwindigkeit liegende Ausführung zu ermöglichen, während es gleichzeitig portabel und sicher bleibt. WASM-Module bestehen aus Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen. Die Ausführung erfolgt in einer Sandbox-Umgebung, wobei der Zugriff auf Systemfunktionen über Host-Imports erfolgt. WASM wird von vielen Sprachen unterstützt, darunter C/C++, Rust und AssemblyScript, die über Compiler-Toolchains in WASM übersetzt werden können. Für den Compilerbau bietet WASM ein einheitliches Target, wodurch viele plattformspezifische Details im Backend entfallen.
+
+Zusätzliche Stichpunkte:
+- WASM ist als Stack-Maschine definiert: Instruktionen arbeiten primär auf einem Operand-Stack @wasm-spec.
+- Module werden vor der Ausführung validiert (z.B. Typkonsistenz von Instruktionen) @wasm-w3c-core.
+- Textformat (WAT) und Binärformat bilden dieselbe Modulstruktur ab; WAT ist vor allem für Debugging und Lernen nützlich @wasm-spec.
+
 
 Beispiel (Quellcode → WAT):
 
@@ -190,13 +236,15 @@ fn main(){
 = Selbstversuch
 
 == Funktionsumfang der eigenen Programmiersprache
-- Minimaler Datentyp: `Int` (Ganzzahl, intern `i64`).
-- Programmbau: nur Funktionen, keine globalen Variablen.
-- Statements: `let`, `return`, `if/else`, `while`, Ausdrucks-Statement.
-- Ausdrücke: Literale, Variablen, Binäroperationen, Funktionsaufrufe.
-- Vergleichsoperatoren: `==`, `!=`, `<`, `<=`, `>`, `>=`.
-- Rückgabetyp optional: `-> Int` oder ohne Rückgabe.
-- Print-Funktion als Host-Import (`print`).
+// - Minimaler Datentyp: `Int` (Ganzzahl, intern `i64`).
+// - Programmbau: nur Funktionen, keine globalen Variablen.
+// - Statements: `let`, `return`, `if/else`, `while`, Ausdrucks-Statement.
+// - Ausdrücke: Literale, Variablen, Binäroperationen, Funktionsaufrufe.
+// - Vergleichsoperatoren: `==`, `!=`, `<`, `<=`, `>`, `>=`.
+// - Rückgabetyp optional: `-> Int` oder ohne Rückgabe.
+// - Print-Funktion als Host-Import (`print`).
+
+Diese Sprache ist bewusst minimalistisch gehalten, um den Fokus auf die Kernkonzepte des Compilerbaus zu legen. Sie unterstützt nur einen Datentyp (`Int`), der intern als 64-Bit-Ganzzahl (`i64`) umgesetzt wird. Es gibt keine globalen Variablen, sondern nur Funktionen, die lokale Variablen über `let`-Statements definieren können. Kontrollstrukturen umfassen `if/else` und `while`, während Ausdrücke Literale, Variablen, Binäroperationen und Funktionsaufrufe erlauben. Vergleichsoperatoren ermöglichen einfache Bedingungen. Rückgabetypen sind optional, und eine Host-Funktion `print` ermöglicht die Ausgabe von Werten.
 
 #code-box[
 ```rust
@@ -225,11 +273,13 @@ Erläuterung:
 - `FunctionDecl` hält Signatur und Funktionskörper zusammen.
 
 == Lexer / Scanner
-- Aufgabe: Quelltext in Tokenliste umwandeln (inkl. Position/Span).
-- Erkannt: Schlüsselwörter (`fn`, `let`, `if`, `else`, `while`, `return`).
-- Erkannt: Literale (`Int`) und Identifier.
-- Operatoren und Trennzeichen: `+ - * / % ( ) { } , ; : ->`.
-- Fehlerbehandlung: unerwartete Zeichen, ungültige Zahlen.
+// - Aufgabe: Quelltext in Tokenliste umwandeln (inkl. Position/Span).
+// - Erkannt: Schlüsselwörter (`fn`, `let`, `if`, `else`, `while`, `return`).
+// - Erkannt: Literale (`Int`) und Identifier.
+// - Operatoren und Trennzeichen: `+ - * / % ( ) { } , ; : ->`.
+// - Fehlerbehandlung: unerwartete Zeichen, ungültige Zahlen.
+
+Der Lexer liest den Quelltext Zeichen für Zeichen und gruppiert sie in sinnvolle Einheiten, sogenannte Tokens. Er erkennt Schlüsselwörter wie `fn`, `let`, `if`, `else`, `while` und `return`, die eine spezielle Bedeutung haben. Außerdem identifiziert er Literale (z.B. Ganzzahlen) und Identifier (z.B. Funktions- oder Variablennamen). Operatoren und Trennzeichen werden ebenfalls als eigene Token klassifiziert. Bei der Verarbeitung des Quelltexts muss der Lexer auch Fehler erkennen, z.B. wenn ein unerwartetes Zeichen auftaucht oder eine Zahl ungültig formatiert ist.
 
 #diagram(
   node-stroke: 0.7pt,
@@ -287,6 +337,7 @@ Erläuterung:
 - Die Tokenliste ist die gemeinsame Sprache zwischen Lexer und Parser.
 - `Ident(String)` und `Int(i64)` tragen bereits konkrete Werte.
 
+
 #code-box[
 ```rust
 pub fn lex_ident(&mut self, first_char: char) -> TokenKind {
@@ -325,11 +376,19 @@ Erläuterung:
 #pagebreak()
 
 == Parser
-- Aufbau eines AST aus Tokens.
-- Einstieg: `parse_program` sammelt Funktionen bis `EOF`.
-- Funktionen: `fn name(params) -> Int { ... }`.
-- Block: Sequenz von Statements in `{ ... }`.
-- Ausdrucksparser mit Präzedenzregeln für Operatoren.
+// - Aufbau eines AST aus Tokens.
+// - Einstieg: `parse_program` sammelt Funktionen bis `EOF`.
+// - Funktionen: `fn name(params) -> Int { ... }`.
+// - Block: Sequenz von Statements in `{ ... }`.
+// - Ausdrucksparser mit Präzedenzregeln für Operatoren.
+
+Der Parser nimmt die vom Lexer erzeugte Tokenliste und baut daraus einen abstrakten Syntaxbaum (AST) auf, der die hierarchische Struktur des Programms widerspiegelt. Der Einstiegspunkt ist die Funktion `parse_program`, die alle Funktionen im Quelltext sammelt, bis sie das End-Token (`EOF`) erreicht. Jede Funktion wird durch `fn name(params) -> Int { ... }` definiert, wobei der Rückgabetyp optional ist. Blöcke werden als Sequenzen von Statements in `{ ... }` dargestellt. Für Ausdrücke wird ein spezieller Parser mit Präzedenzregeln implementiert, um die korrekte Bindung von Operatoren sicherzustellen.
+
+Zusätzliche Stichpunkte:
+- Der gewählte Ansatz entspricht einem rekursiven Abstieg, bei dem Nichtterminale durch Funktionen umgesetzt werden @llvm-kaleidoscope-parser.
+- Operator-Präzedenz wird typischerweise über eine Prioritätstabelle gesteuert, damit z.B. `*` stärker bindet als `+` @llvm-kaleidoscope-parser.
+- Der AST trennt konkrete Syntax (Tokens, Klammern) von semantisch relevanter Struktur (Ausdrücke, Statements) @llvm-kaleidoscope-parser.
+
 
 #diagram(
   node-stroke: 0.7pt,
@@ -478,11 +537,18 @@ Fortsetzung: Rückgabetyp und Funktionskörper
 #pagebreak()
 
 == Codegen
-- Ziel: WASM-Bytecode erzeugen.
-- Eigene kleine IR (`IrInstruction`) als Zwischenschicht.
-- Mapping von IR auf `wasm_encoder::Instruction`.
-- ModuleGen: sammelt Typen, Imports, Funktionen, Exports, Code.
-- Host-Funktion `print` als Import (`env.print_i64`).
+// - Ziel: WASM-Bytecode erzeugen.
+// - Eigene kleine IR (`IrInstruction`) als Zwischenschicht.
+// - Mapping von IR auf `wasm_encoder::Instruction`.
+// - ModuleGen: sammelt Typen, Imports, Funktionen, Exports, Code.
+// - Host-Funktion `print` als Import (`env.print_i64`).
+
+Der Codegenerator nimmt den AST und übersetzt ihn in eine eigene Zwischenrepräsentation (IR), die aus einer linearen Folge von Instruktionen besteht. Diese IR abstrahiert von den Details der WASM-Generierung und ermöglicht eine klarere Trennung zwischen der Logik der Codeerzeugung und den spezifischen Anforderungen des WASM-Formats. Anschließend wird die IR in echte WASM-Bytecode-Instruktionen umgewandelt, wobei die `wasm_encoder`-Bibliothek verwendet wird, um Module, Funktionen, Imports und Exports zu definieren. Die Host-Funktion `print` wird als Import unter dem Namen `env.print_i64` bereitgestellt, damit sie im generierten WASM-Modul aufgerufen werden kann.
+
+Zusätzliche Stichpunkte:
+- Eine IR erleichtert spätere Optimierungen, weil Transformationen nicht mehr direkt auf Quellsyntax arbeiten.
+- Der Einsatz einer IR entspricht der Praxis großer Compiler-Infrastrukturen (z.B. LLVM IR als zentrale Zwischenschicht) @llvm-langref.
+- Die Abbildung von Kontrollfluss (`if`, `while`) auf explizite Instruktionsfolgen ist ein zentraler Schritt vom AST zum Zielcode.
 
 #code-box[
 ```rust
@@ -559,6 +625,8 @@ Erläuterung:
 - Runtime: `wasmtime` (lädt Bytecode, instanziert Modul, ruft `main` auf).
 - Host-Import `print_i64` wird in Rust bereitgestellt, damit `print(...)` funktioniert.
 - Ablauf: Quelltext → Tokens → AST → WASM‑Bytes → Wasmtime ausführen.
+- `Engine`, `Module`, `Store` und `Instance` sind die zentralen Bausteine der Wasmtime-Ausführung @wasmtime-crate-docs.
+- Imports müssen beim Instanziieren bereitgestellt werden, sonst schlägt das Laden des Moduls fehl @wasmtime-hello-world.
 
 #code-box[
 ```rust
@@ -614,11 +682,17 @@ fn main(){
 
 = Fazit
 
-- Einheitliches Ziel (WASM) statt viele Plattformen
-- Backend-Aufwand reduziert
-- Frontend bleibt komplex
-- Abhängigkeit von Host-Imports/Sandbox
-- Eignung für Hobby-Compiler: deutlich besser, aber nicht trivial
+// - Einheitliches Ziel (WASM) statt viele Plattformen
+// - Backend-Aufwand reduziert
+// - Frontend bleibt komplex
+// - Abhängigkeit von Host-Imports/Sandbox
+// - Eignung für Hobby-Compiler: deutlich besser, aber nicht trivial
+
+// - Selbstversuch
+//     - mehr proof of concept als geeignet für produktion
+//     - sehr gut zum lernen  
+
+Um die Leitfrage zu beantworten: WebAssembly erleichtert den Bau eigener Compiler für Amateurentwickler erheblich, da es ein einheitliches Ziel bietet und viele plattformspezifische Details im Backend abstrahiert. Allerdings bleibt die Entwicklung eines Compilers eine komplexe Aufgabe, insbesondere im Frontend (Lexing, Parsing, semantische Analyse). Die Abhängigkeit von Host-Imports und der Sandbox-Umgebung von WASM kann ebenfalls Einschränkungen mit sich bringen. Insgesamt ist WASM eine vielversprechende Plattform für Hobby-Compiler, aber es erfordert dennoch ein gewisses Maß an technischem Verständnis und Aufwand.
 
 #pagebreak()
 
@@ -630,6 +704,9 @@ fn main(){
 = Todo
 
 - Diagramme / Programmcode durchnummerieren
+- größere überschriften
+- kein punkt nach unterkapitel: 2.1 und nicht 2.1.
+- mehr platz unter Überschrift
 
 - Einleitungssätze für kapitel vorm ersten inhalt
 
@@ -652,3 +729,31 @@ fn main(){
         - was beim nächsten mal anders machen
 
     
+
+#pagebreak()
+
+= Anhang: Quellcode
+
+Anhang-Inhaltsverzeichnis:
+
+#outline(
+  title: "Quellcode-Übersicht",
+  target: heading.where(level: 3),
+)
+
+#pagebreak()
+
+#source-file("factorial.eres", lang: "rust")
+#source-file("src/ast.rs", lang: "rust")
+#source-file("src/lexer.rs", lang: "rust")
+#source-file("src/main.rs", lang: "rust")
+#source-file("src/parser.rs", lang: "rust")
+#source-file("src/runner.rs", lang: "rust")
+#source-file("src/token.rs", lang: "rust")
+#source-file("src/codegen/expr.rs", lang: "rust")
+#source-file("src/codegen/ir.rs", lang: "rust")
+#source-file("src/codegen/mod.rs", lang: "rust")
+#source-file("src/codegen/module.rs", lang: "rust")
+#source-file("src/codegen/stmt.rs", lang: "rust")
+
+#pagebreak()

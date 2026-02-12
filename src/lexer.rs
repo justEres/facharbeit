@@ -3,7 +3,6 @@ use std::str::Chars;
 use crate::token::{Span, Token, TokenKind};
 
 pub struct Lexer<'a> {
-    src: &'a str,
     chars: Chars<'a>,
     pos: usize,
 }
@@ -187,7 +186,6 @@ impl<'a> Lexer<'a> {
 
     pub fn new(src: &'a str) -> Self {
         Lexer {
-            src,
             chars: src.chars(),
             pos: 0,
         }
@@ -214,10 +212,9 @@ pub fn lex_file(src: &str) -> Result<Vec<Token>, LexError> {
 pub enum LexError {
     UnexpectedChar { ch: char, span: Span },
     InvalidNumber { span: Span },
-    UnterminatedComment { span: Span },
 }
 
-pub fn report_lex_error(src: &str, error: LexError) {
+pub fn report_lex_error(_src: &str, error: LexError) {
     match error {
         LexError::UnexpectedChar { ch, span } => {
             eprintln!(
@@ -227,12 +224,6 @@ pub fn report_lex_error(src: &str, error: LexError) {
         }
         LexError::InvalidNumber { span } => {
             eprintln!("LexError: Invalid number at {}:{}", span.start, span.end);
-        }
-        LexError::UnterminatedComment { span } => {
-            eprintln!(
-                "LexError: Unterminated comment starting at {}:{}",
-                span.start, span.end
-            );
         }
     }
 }

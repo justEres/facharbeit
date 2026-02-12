@@ -1,6 +1,6 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
-    //Keywords
+    // Keywords
     Let,
     Fn,
     If,
@@ -8,11 +8,11 @@ pub enum TokenKind {
     While,
     Return,
 
-    //Identifiers + literals
+    // Identifiers + literals
     Ident(String),
     Int(i64),
 
-    //Operators
+    // Operators
     Plus,
     Minus,
     Star,
@@ -20,7 +20,7 @@ pub enum TokenKind {
     Percentage,
     Equal,
 
-    //Comparison Operators
+    // Comparison operators
     EqualEqual,
     NotEqual,
     Less,
@@ -28,7 +28,7 @@ pub enum TokenKind {
     Greater,
     GreaterEqual,
 
-    //Delimeters
+    // Delimiters
     LParen,
     RParen,
     LBrace,
@@ -36,9 +36,9 @@ pub enum TokenKind {
     Semicolon,
     Comma,
 
-    //Type Hints
+    // Type hints
     Colon,
-    Arrow, 
+    Arrow,
     IntType,
 
     EOF,
@@ -65,5 +65,3 @@ pub struct Span {
     pub start: usize,
     pub end: usize,
 }
-
-

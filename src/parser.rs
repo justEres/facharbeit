@@ -1,15 +1,11 @@
-
 use crate::ast::*;
 use crate::token::*;
-
-//recursive descent
 
 #[derive(Debug)]
 pub struct Parser<'a> {
     tokens: &'a [Token],
     pos: usize,
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -29,8 +25,11 @@ mod tests {
         assert_eq!(f.body.len(), 1);
 
         match &f.body[0] {
-            Stmt::If { cond, then_block, else_block } => {
-                // cond should be Binary with Lt
+            Stmt::If {
+                cond,
+                then_block,
+                else_block,
+            } => {
                 match cond {
                     Expr::Binary { op, left, right } => {
                         match op {
@@ -74,12 +73,15 @@ mod tests {
                             _ => panic!("expected Lt op"),
                         }
                         match &**left {
-                            Expr::Binary { op: lop, left: lleft, right: _lright } => {
+                            Expr::Binary {
+                                op: lop,
+                                left: lleft,
+                                right: _lright,
+                            } => {
                                 match lop {
                                     BinOp::Add => (),
                                     _ => panic!("expected Add as left op"),
                                 }
-                                // left operand of add should be local x
                                 match &**lleft {
                                     Expr::Local(n) => assert_eq!(n, "x"),
                                     _ => panic!("expected local x"),
@@ -111,12 +113,14 @@ mod tests {
             Stmt::Let { name, value } => {
                 assert_eq!(name, "r");
                 match value {
-                    Expr::Binary { op, left, right } => {
-                        match op {
-                            BinOp::Le => (),
-                            _ => panic!("expected Le op"),
-                        }
-                    }
+                    Expr::Binary {
+                        op,
+                        left: _left,
+                        right: _right,
+                    } => match op {
+                        BinOp::Le => (),
+                        _ => panic!("expected Le op"),
+                    },
                     _ => panic!("expected binary value"),
                 }
             }
@@ -145,7 +149,6 @@ impl<'a> Parser<'a> {
         if tok.kind == kind {
             Ok(tok)
         } else {
-
             Err(ParseError::UnexpectedToken {
                 expected: kind.name(),
                 found: tok,
@@ -164,7 +167,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
-        // Placeholder implementation
         self.expect(TokenKind::Fn)?;
 
         let name = match self.bump().kind.clone() {
@@ -181,7 +183,6 @@ impl<'a> Parser<'a> {
         };
 
         self.expect(TokenKind::LParen)?;
-
 
         let mut params = Vec::new();
         if self.peek().kind != TokenKind::RParen {
@@ -205,10 +206,10 @@ impl<'a> Parser<'a> {
         }
 
         self.expect(TokenKind::RParen)?;
-        // optional return type
+        // Optional return type (`-> Int`).
         let return_type = if self.peek().kind == TokenKind::Arrow {
             self.bump();
-            // currently only Int type supported
+            // Currently only Int is supported.
             self.expect(TokenKind::IntType)?;
             Some(crate::ast::Type::Int)
         } else {
@@ -216,7 +217,12 @@ impl<'a> Parser<'a> {
         };
         let body = self.parse_block()?;
 
-        Ok(FunctionDecl { name, params, body, return_type })
+        Ok(FunctionDecl {
+            name,
+            params,
+            body,
+            return_type,
+        })
     }
 
     fn parse_block(&mut self) -> Result<Vec<Stmt>, ParseError> {
@@ -312,7 +318,6 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expr(&mut self) -> Result<Expr, ParseError> {
-
         self.parse_binary_expr(0)
     }
 
@@ -372,12 +377,10 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self) -> Result<Expr, ParseError> {
         let tok = self.bump().clone();
 
-
         match tok.kind {
             TokenKind::Int(value) => Ok(Expr::Int(value)),
 
             TokenKind::Ident(name) => {
-
                 if self.peek().kind == TokenKind::LParen {
                     self.bump(); // '('
                     let mut args = Vec::new();
@@ -394,11 +397,9 @@ impl<'a> Parser<'a> {
                         }
                     }
 
-
                     self.expect(TokenKind::RParen)?;
                     Ok(Expr::Call { name, args })
                 } else {
-
                     Ok(Expr::Local(name))
                 }
             }
@@ -413,7 +414,7 @@ impl<'a> Parser<'a> {
     }
 }
 
-#[allow(dead_code, unused_variables)]
+#[allow(dead_code)]
 #[derive(Debug)]
 pub enum ParseError {
     UnexpectedToken { expected: String, found: Token },

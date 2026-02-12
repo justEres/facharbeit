@@ -1,10 +1,10 @@
+use crate::codegen::ir::IrInstruction;
 use crate::{
     ast::Stmt,
     codegen::{expr::emit_expr, module::FuncGen},
 };
 use std::collections::HashMap;
 use wasm_encoder::*;
-use crate::codegen::ir::IrInstruction;
 
 pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32, bool)>) {
     match stmt {
@@ -18,9 +18,7 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32,
         }
 
         Stmt::Expr(expr) => {
-            // Only drop the expression result if the expression actually left
-            // a value on the stack. emit_expr now returns true when it
-            // pushed a value.
+            // Drop only if this expression produced a stack value.
             let produced = emit_expr(expr, r#gen, funcs);
             if produced {
                 r#gen.instructions.push(IrInstruction::Drop);
@@ -33,11 +31,10 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32,
                     emit_expr(expr, r#gen, funcs);
                 }
                 None => {
-                    // If the function declares a return type, supply a default 0 value.
+                    // If a return type exists, return a default zero value.
                     if r#gen.has_return {
                         r#gen.instructions.push(IrInstruction::I64Const(0));
                     }
-                    // otherwise return with no value
                 }
             }
 
@@ -50,11 +47,11 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32,
             else_block,
         } => {
             emit_expr(cond, r#gen, funcs);
-            // emit_expr produces i64 for comparisons and integers; Wasm `if` expects an i32
-            // convert i64 (0/1) -> i32 boolean: i64.eqz -> i32 (1 if zero), then i32.eqz to invert
+            // emit_expr leaves i64 values, while wasm `if` expects i32.
+            // Convert i64 truthy/falsey into an i32 condition.
             r#gen.instructions.push(IrInstruction::I64Eqz);
             r#gen.instructions.push(IrInstruction::I32Eqz);
-            r#gen.instructions.push(IrInstruction::If(BlockType::Empty)); // what does empty do?
+            r#gen.instructions.push(IrInstruction::If(BlockType::Empty));
 
             for s in then_block {
                 emit_stmt(s, r#gen, funcs);
@@ -74,7 +71,9 @@ pub fn emit_stmt(stmt: &Stmt, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32,
             r#gen
                 .instructions
                 .push(IrInstruction::Block(BlockType::Empty));
-            r#gen.instructions.push(IrInstruction::Loop(BlockType::Empty));
+            r#gen
+                .instructions
+                .push(IrInstruction::Loop(BlockType::Empty));
 
             emit_expr(cond, r#gen, funcs);
             r#gen.instructions.push(IrInstruction::I64Eqz);

@@ -1,8 +1,6 @@
 use wasm_encoder::{BlockType, Instruction};
 
-
-
-pub enum IrInstruction{
+pub enum IrInstruction {
     I64Const(i64),
     I64Eqz,
     BrIf(u32),
@@ -18,7 +16,7 @@ pub enum IrInstruction{
     Return,
     End,
 
-    //arithmetic
+    // Arithmetic
     I64Add,
     I64Sub,
     I64Mul,
@@ -30,13 +28,13 @@ pub enum IrInstruction{
     I32Eqz,
 }
 
-impl IrInstruction{
-    pub fn to_wasm(&self) -> Instruction<'_>{
+impl IrInstruction {
+    pub fn to_wasm(&self) -> Instruction<'_> {
         match self {
             IrInstruction::I64Const(v) => Instruction::I64Const(*v),
             IrInstruction::I64Eqz => Instruction::I64Eqz,
             IrInstruction::BrIf(idx) => Instruction::BrIf(*idx),
-            IrInstruction::Br(idx) =>Instruction::Br(*idx),
+            IrInstruction::Br(idx) => Instruction::Br(*idx),
             IrInstruction::LocalSet(idx) => Instruction::LocalSet(*idx),
             IrInstruction::LocalGet(idx) => Instruction::LocalGet(*idx),
             IrInstruction::Call(idx) => Instruction::Call(*idx),

@@ -1,12 +1,9 @@
 use std::collections::HashMap;
 
-use wasm_encoder::*;
 use crate::codegen::ir::IrInstruction;
+use wasm_encoder::*;
 
-use crate::{
-    ast::FunctionDecl,
-    codegen::stmt::emit_stmt,
-};
+use crate::{ast::FunctionDecl, codegen::stmt::emit_stmt};
 
 pub struct ModuleGen {
     module: Module,
@@ -37,26 +34,25 @@ impl ModuleGen {
     }
 
     pub fn init_with_host_functions(mut self) -> Self {
-        // register host imports (print)
+        // Register host imports (currently only print).
         self.add_print_import();
         self
     }
 
     fn add_print_import(&mut self) {
-        // create a function type for (i64) -> ()
+        // (i64) -> ()
         let type_index = self.next_type_index;
         self.next_type_index += 1;
         self.types.ty().function(vec![ValType::I64], Vec::new());
 
-        // import under module "env" with name "print_i64"
+        // Import as env.print_i64.
         self.imports
             .import("env", "print_i64", EntityType::Function(type_index));
 
-    // assign function index for the imported function and expose under name "print"
-    let idx = self.next_func_index;
-    self.next_func_index += 1;
-    // imported `print` has no return value
-    self.func_indices.insert("print".to_string(), (idx, false));
+        // Expose this import as `print` in the compiler function table.
+        let idx = self.next_func_index;
+        self.next_func_index += 1;
+        self.func_indices.insert("print".to_string(), (idx, false));
     }
 
     pub fn finish(mut self) -> Vec<u8> {
@@ -112,32 +108,28 @@ impl ModuleGen {
             r#gen.instructions.push(IrInstruction::I64Const(0));
             r#gen.instructions.push(IrInstruction::Return);
         }
-    
 
         let mut local_groups = Vec::new();
-        for ty in r#gen.locals{
-            local_groups.push((1,ty));
+        for ty in r#gen.locals {
+            local_groups.push((1, ty));
         }
 
         let mut wasm_func = Function::new(local_groups);
 
-        for instr in r#gen.instructions{
+        for instr in r#gen.instructions {
             wasm_func.instruction(&instr.to_wasm());
         }
 
         wasm_func.instruction(&Instruction::End);
 
-                
-
         self.codes.function(&wasm_func);
-
-
     }
 }
 
 pub struct FuncGen {
     pub locals: Vec<ValType>,
     pub local_map: HashMap<String, u32>,
-    pub instructions: Vec<IrInstruction>, //TODO: Custom Ir to first declare locals and later generate instructions
+    // Instruction list for one function body.
+    pub instructions: Vec<IrInstruction>,
     pub has_return: bool,
 }

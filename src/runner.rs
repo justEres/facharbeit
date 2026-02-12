@@ -1,11 +1,11 @@
-use wasmtime::{Engine, Instance, Store, Val};
 use std::sync::{Arc, Mutex};
+use wasmtime::{Engine, Instance, Store, Val};
 
 use crate::codegen::module::ModuleGen;
 use crate::lexer::lex_file;
 use crate::parser::Parser;
 
-/// Compile source to wasm bytes (single-function programs expected)
+/// Compile source to wasm bytes.
 pub fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
     let tokens = lex_file(src).map_err(|e| format!("lex error: {:?}", e))?;
     let mut parser = Parser::new(&tokens);
@@ -13,7 +13,7 @@ pub fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
         .parse_program()
         .map_err(|e| format!("parse error: {:?}", e))?;
 
-    // Create module generator and register host imports (print)
+    // Register host imports (print), then declare and emit all functions.
     let mut module_gen = ModuleGen::new().init_with_host_functions();
     for func in &program.functions {
         module_gen.declare_function(func);
@@ -70,12 +70,11 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
     }
 }
 
-/// Convenience: compile source and run it.
+/// Convenience helper: compile source and run it.
 pub fn run_source(src: &str, args: Vec<i64>) -> Result<Option<i64>, String> {
     let bytes = compile_bytes_from_src(src)?;
     run_wasm_bytes(&bytes, args)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -99,13 +98,14 @@ mod tests {
     #[test]
     fn run_parenthesized_complex() {
         let src = "fn main(a,b,c,d) -> Int { let r = (a + b) <= (c - d); return r; }";
-        // a=1 b=1 c=5 d=2 -> (1+1) <= (5-2) -> 2 <= 3 => true
-    let _res = run_source(src, vec![1, 1]).expect_err("expected error because missing c,d args");
-        // the above call lacks c,d as params; instead compile and run with different invocation
+        // Wrong arity should return an error.
+        let _res =
+            run_source(src, vec![1, 1]).expect_err("expected error because missing c,d args");
+
         let src2 = "fn main(a,b,c,d) -> Int { let r = (a + b) <= (c - d); return r; }";
         let bytes = compile_bytes_from_src(src2).expect("compile failed");
-    let out = run_wasm_bytes(&bytes, vec![2, 1]).expect_err("expected error due to wrong arg count");
-        // We only check that calling with wrong args returns an Err; actual happy-path tested elsewhere.
+        let out =
+            run_wasm_bytes(&bytes, vec![2, 1]).expect_err("expected error due to wrong arg count");
         let _ = out;
     }
 
@@ -128,13 +128,17 @@ mod tests {
             captured.lock().unwrap().push(v);
         });
 
-        let instance = Instance::new(&mut store, &module, &[print_func.into()]).expect("instance creation failed");
+        let instance = Instance::new(&mut store, &module, &[print_func.into()])
+            .expect("instance creation failed");
 
-        let func = instance.get_func(&mut store, "main").expect("main not found");
+        let func = instance
+            .get_func(&mut store, "main")
+            .expect("main not found");
         let params: Vec<Val> = Vec::new();
         let mut results_buf: Vec<Val> = Vec::new();
 
-        func.call(&mut store, &params, &mut results_buf).expect("call failed");
+        func.call(&mut store, &params, &mut results_buf)
+            .expect("call failed");
 
         let got = printed.lock().unwrap().clone();
         assert_eq!(got, vec![3]);
