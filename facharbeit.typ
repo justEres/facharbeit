@@ -14,11 +14,13 @@
   font: "Times New Roman"
 )
 
-// Lokale Schriftdateien einbinden (Fallback, falls Systemfont fehlt)
-#set text(font: "fonts/Times New Roman.ttf")
+// Nutzt die lokal installierte Schriftfamilie (siehe ~/.local/share/fonts)
 #set par(justify: true, leading: 0.75em)
 
-#show heading.where(level: 1): set text(size: 13pt)
+#show heading: set block(above: 0.9em, below: 0.8em)
+#show heading.where(level: 1): set text(size: 15pt)
+#show heading.where(level: 2): set text(size: 13pt)
+#show heading.where(level: 3): set text(size: 12pt)
 
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 #import "vendor/codly/codly.typ": *
@@ -47,6 +49,14 @@
   #body
 ]
 
+#let diagram-box(body) = box(
+  width: 100%,
+  stroke: 0.5pt,
+  inset: 6pt,
+)[
+  #body
+]
+
 #let source-file(path, lang: "text") = [
 === #path
 [
@@ -55,6 +65,33 @@
   #set par(justify: false)
   #raw(read(path), block: true, lang: lang)
 ]
+]
+
+#show figure.where(kind: "diagram"): set figure(
+  supplement: [Abbildung],
+  numbering: "1",
+  gap: 0.4em,
+)
+#show figure.where(kind: "code"): set figure(
+  supplement: [Codebeispiel],
+  numbering: "1",
+  gap: 0.4em,
+)
+#show figure.caption.where(kind: "diagram"): it => [
+  #set text(
+    size: 9pt,
+    fill: rgb("#555555"),
+    style: "italic",
+  )
+  #align(left)[#it]
+]
+#show figure.caption.where(kind: "code"): it => [
+  #set text(
+    size: 9pt,
+    fill: rgb("#555555"),
+    style: "italic",
+  )
+  #align(left)[#it]
 ]
 #align(center)[
   #v(3cm)
@@ -91,7 +128,7 @@
 
 #pagebreak()
 
-#set heading(numbering: "1.")
+#set heading(numbering: "1.1")
 
 = Einleitung
 
@@ -133,6 +170,10 @@ als Compilation Target für Hobby-Compiler bewertet.
 
 
 = Compiler
+- Einordnung: Grundbegriffe des Compilerbaus
+- Fokus: Frontend, Backend, Zielformat WASM
+- Bezug zur Leitfrage: technischer Aufwand vs. Vereinfachung durch WASM
+
 == Was ist ein Compiler?
 // - Übersetzt Quellcode in eine andere Darstellung (meist maschinennahe Form).
 // - Zielformen: Maschinencode, Bytecode oder Zwischenrepräsentation (IR) zur Weiterverarbeitung.
@@ -186,7 +227,8 @@ Zusätzliche Stichpunkte:
 
 Beispiel (Quellcode → WAT):
 
-#code-box[
+#figure(kind: "code", caption: [Programmbeispiel: Addition in eigener Sprache (Quelle: add.eres)])[
+  #code-box[
 ```rust
 fn add(a, b) -> Int {
     return a + b;
@@ -198,9 +240,10 @@ fn main(){
 }
 ```
 ]
-#footnote[Quelle: add.eres]
+]
 
-#code-box[
+#figure(kind: "code", caption: [Generiertes WAT zum Additionsbeispiel (aus `add.eres`)])[
+  #code-box[
 ```rust
 (module
   (type (;0;) (func (param i64)))  // Funktion mit 1 Parameter, kein Rückgabewert
@@ -229,11 +272,15 @@ fn main(){
 )
 ```
 ]
+]
 
 
 #pagebreak()
 
 = Selbstversuch
+- Ziel: Umsetzbarkeit der Theorie im eigenen Mini-Compiler prüfen
+- Fokus: vollständige Pipeline von Quelltext bis Ausführung
+- Ergebnisartefakte: Tokens, AST, WAT, Laufzeitausgabe
 
 == Funktionsumfang der eigenen Programmiersprache
 // - Minimaler Datentyp: `Int` (Ganzzahl, intern `i64`).
@@ -246,7 +293,8 @@ fn main(){
 
 Diese Sprache ist bewusst minimalistisch gehalten, um den Fokus auf die Kernkonzepte des Compilerbaus zu legen. Sie unterstützt nur einen Datentyp (`Int`), der intern als 64-Bit-Ganzzahl (`i64`) umgesetzt wird. Es gibt keine globalen Variablen, sondern nur Funktionen, die lokale Variablen über `let`-Statements definieren können. Kontrollstrukturen umfassen `if/else` und `while`, während Ausdrücke Literale, Variablen, Binäroperationen und Funktionsaufrufe erlauben. Vergleichsoperatoren ermöglichen einfache Bedingungen. Rückgabetypen sind optional, und eine Host-Funktion `print` ermöglicht die Ausgabe von Werten.
 
-#code-box[
+#figure(kind: "code", caption: [AST-Datenstrukturen (Quelle: src/ast.rs)])[
+  #code-box[
 ```rust
 #[derive(Debug)]
 pub enum Stmt {
@@ -266,7 +314,7 @@ pub struct FunctionDecl {
 }
 ```
 ]
-#footnote[Quelle: src/ast.rs]
+]
 
 Erläuterung:
 - `Stmt` beschreibt die möglichen Anweisungen der Sprache.
@@ -281,31 +329,50 @@ Erläuterung:
 
 Der Lexer liest den Quelltext Zeichen für Zeichen und gruppiert sie in sinnvolle Einheiten, sogenannte Tokens. Er erkennt Schlüsselwörter wie `fn`, `let`, `if`, `else`, `while` und `return`, die eine spezielle Bedeutung haben. Außerdem identifiziert er Literale (z.B. Ganzzahlen) und Identifier (z.B. Funktions- oder Variablennamen). Operatoren und Trennzeichen werden ebenfalls als eigene Token klassifiziert. Bei der Verarbeitung des Quelltexts muss der Lexer auch Fehler erkennen, z.B. wenn ein unerwartetes Zeichen auftaucht oder eine Zahl ungültig formatiert ist.
 
-#diagram(
+#figure(kind: "diagram", caption: [Zustandsmodell des Lexers])[
+  #diagram-box[
+  #set text(size: 8.5pt)
+  #diagram(
   node-stroke: 0.7pt,
-  spacing: 2.0em,
-  node((-2,4), [Start], corner-radius: 2pt),
-  edge((-2,4), (2,0), "-|>", [Buchstabe/\_], label-pos: 75%, label-side: left, label-sep: 4pt),
-  node((2,0), [In\ Ident], corner-radius: 2pt),
-  edge((2,0), (4,0), "-|>", [Ende\ Ident], label-pos: 70%, label-side: right, label-sep: 3pt),
+  spacing: 1.5em,
+  node((-3.5,4), [Start], corner-radius: 2pt),
+  node((-1.5,4), [Zeichen?], corner-radius: 2pt),
+  edge((-3.5,4), (-1.5,4), "->"),
+
+  node((0,0), [Buchstabe/\_], corner-radius: 2pt),
+  edge((-1.5,4), (0,0), "-|>"),
+  node((2,0), [In\ Ident], corner-radius: 50%),
+  edge((0,0), (2,0), "->"),
   node((4,0), [Emit\ Ident/Keyword], corner-radius: 2pt),
+  edge((2,0), (4,0), "->", [Ende], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  edge((-2,4), (2,2), "-|>", [Ziffer], label-pos: 75%, label-side: left, label-sep: 4pt),
-  node((2,2), [In\ Zahl], corner-radius: 2pt),
-  edge((2,2), (4,2), "-|>", [Ende\ Zahl], label-pos: 70%, label-side: right, label-sep: 3pt),
-  node((4,2), [Emit\ Zahl], corner-radius: 2pt),
+  node((0,2), [Ziffer], corner-radius: 2pt),
+  edge((-1.5,4), (0,2), "-|>"),
+  node((2,2), [In\ Zahl], corner-radius: 50%),
+  edge((0,2), (2,2), "->"),
+  node((4,2), [Emit\ Zahl], corner-radius: 50%),
+  edge((2,2), (4,2), "->", [Ende], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  edge((-2,4), (2,4), "-|>", [Op/Trenner], label-pos: 60%, label-side: left, label-sep: 4pt),
+  node((0,4), [Op/Trenner], corner-radius: 2pt),
+  edge((-1.5,4), (0,4), "->"),
   node((2,4), [Emit\ Operator], corner-radius: 2pt),
+  edge((0,4), (2,4), "->"),
 
-  edge((-2,4), (2,6), "-|>", [Whitespace], label-pos: 55%, label-side: left, label-sep: 4pt),
+  node((0,6), [Whitespace], corner-radius: 2pt),
+  edge((-1.5,4), (0,6), "-|>"),
   node((2,6), [Skip], corner-radius: 2pt),
+  edge((0,6), (2,6), "->"),
 
-  edge((-2,4), (2,8), "-|>", [Unbekannt], label-pos: 70%, label-side: right, label-sep: 4pt),
+  node((0,8), [Unbekannt], corner-radius: 2pt),
+  edge((-1.5,4), (0,8), "-|>"),
   node((2,8), [Fehler], corner-radius: 2pt),
+  edge((0,8), (2,8), "->"),
 )
+]
+]
 
-#code-box[
+#figure(kind: "code", caption: [Token-Typen (Quelle: src/token.rs)])[
+  #code-box[
 ```rust
 pub enum TokenKind {
     // Schlüsselwörter
@@ -331,14 +398,15 @@ pub enum TokenKind {
 }
 ```
 ]
-#footnote[Quelle: src/token.rs]
+]
 
 Erläuterung:
 - Die Tokenliste ist die gemeinsame Sprache zwischen Lexer und Parser.
 - `Ident(String)` und `Int(i64)` tragen bereits konkrete Werte.
 
 
-#code-box[
+#figure(kind: "code", caption: [Identifier-Lexing (Quelle: src/lexer.rs)])[
+  #code-box[
 ```rust
 pub fn lex_ident(&mut self, first_char: char) -> TokenKind {
     let mut ident_str = first_char.to_string();
@@ -367,7 +435,7 @@ pub fn lex_ident(&mut self, first_char: char) -> TokenKind {
 }
 ```
 ]
-#footnote[Quelle: src/lexer.rs]
+]
 
 Erläuterung:
 - Zeichenfolge wird gesammelt und dann gegen Schlüsselwörter geprüft.
@@ -388,45 +456,68 @@ Zusätzliche Stichpunkte:
 - Der gewählte Ansatz entspricht einem rekursiven Abstieg, bei dem Nichtterminale durch Funktionen umgesetzt werden @llvm-kaleidoscope-parser.
 - Operator-Präzedenz wird typischerweise über eine Prioritätstabelle gesteuert, damit z.B. `*` stärker bindet als `+` @llvm-kaleidoscope-parser.
 - Der AST trennt konkrete Syntax (Tokens, Klammern) von semantisch relevanter Struktur (Ausdrücke, Statements) @llvm-kaleidoscope-parser.
+- [MUSS] Operator-Präzedenz im eigenen Parser konkret zeigen: `1 + 2 * 3` wird als `1 + (2 * 3)` geparst.
+- [MUSS] Assoziativität festhalten: linksassoziativ für `+ - * /`, Vergleichsoperatoren nur in klaren Paaren.
+- [MUSS] Fehlerstrategie erwähnen: Parser bricht bei erstem harten Fehler ab (kein Recovery/Synchronisation).
+- [MUSS] Kurzer Ablauf `parse_expr`: `parse_primary` -> Binäroperationen nach Präzedenz -> AST-Knoten.
+- [NICE] Mini-Beispiel AST-Form: Quelle `a + b * c` -> `Add(Var(a), Mul(Var(b), Var(c)))`.
+- [NICE] Scope-Verhalten bei Blöcken benennen: Variablenzuordnung über lokale Indizes statt echter Symboltabellen-Hierarchie.
+- [NICE] Optional 1 Tabelle mit Operatoren + Priorität + Assoziativität.
+- [STREICHEN] sehr detaillierte Randfälle (z.B. alle nicht unterstützten Syntaxformen) nur kurz nennen statt breit ausführen.
 
 
-#diagram(
+#figure(kind: "diagram", caption: [Zustandsmodell der Statement-Parserlogik])[
+  #diagram-box[
+  #set text(size: 8.5pt)
+  #diagram(
   node-stroke: 0.7pt,
-  spacing: 2.0em,
-  node((-2,4), [Stmt\ Start], corner-radius: 2pt),
-  edge((-2,4), (2,0), "-|>", [`let`], label-pos: 55%, label-side: left, label-sep: 4pt),
+  spacing: 1.5em,
+  node((-3.5,4), [Stmt\ Start], corner-radius: 2pt),
+  node((-1.5,4), [Token?], corner-radius: 2pt),
+  edge((-3.5,4), (-1.5,4), "->"),
+
+  node((0,0), [`let`], corner-radius: 2pt),
+  edge((-1.5,4), (0,0), "-|>"),
   node((2,0), [parse_let], corner-radius: 2pt),
-  edge((2,0), (4,0), "-|>", [;], label-pos: 60%, label-side: right, label-sep: 3pt),
+  edge((0,0), (2,0), "->"),
   node((4,0), [Ende], corner-radius: 2pt),
+  edge((2,0), (4,0), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  edge((-2,4), (2,2), "-|>", [`return`], label-pos: 75%, label-side: right, label-sep: 0pt),
+  node((0,2), [`return`], corner-radius: 2pt),
+  edge((-1.5,4), (0,2), "-|>"),
   node((2,2), [parse_return], corner-radius: 2pt),
-  edge((2,2), (4,2), "-|>", [;], label-pos: 60%, label-side: right, label-sep: 3pt),
+  edge((0,2), (2,2), "->"),
   node((4,2), [Ende], corner-radius: 2pt),
+  edge((2,2), (4,2), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  edge((-2,4), (2,4), "-|>", [`if`], label-pos: 45%, label-side: left, label-sep: 4pt),
+  node((0,4), [`if`], corner-radius: 2pt),
+  edge((-1.5,4), (0,4), "->"),
   node((2,4), [parse_if], corner-radius: 2pt),
-  edge((2,4), (4,4), "-|>", [`else`?], label-pos: 60%, label-side: right, label-sep: 3pt),
-  node((4,4), [then/else\ Block], corner-radius: 2pt),
-  edge((4,4), (6,4), "-|>", [Ende], label-pos: 60%, label-side: right, label-sep: 3pt),
-  node((6,4), [Ende], corner-radius: 2pt),
+  edge((0,4), (2,4), "->"),
+  node((4,4), [Ende], corner-radius: 2pt),
+  edge((2,4), (4,4), "->", [`else` optional], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  edge((-2,4), (2,6), "-|>", [`while`], label-pos: 55%, label-side: left, label-sep: 4pt),
+  node((0,6), [`while`], corner-radius: 2pt),
+  edge((-1.5,4), (0,6), "-|>"),
   node((2,6), [parse_while], corner-radius: 2pt),
-  edge((2,6), (4,6), "-|>", [Block], label-pos: 60%, label-side: right, label-sep: 3pt),
-  node((4,6), [while\ Body], corner-radius: 2pt),
-  edge((4,6), (6,6), "-|>", [Ende], label-pos: 60%, label-side: right, label-sep: 3pt),
-  node((6,6), [Ende], corner-radius: 2pt),
+  edge((0,6), (2,6), "->"),
+  node((4,6), [Ende], corner-radius: 2pt),
+  edge((2,6), (4,6), "->", [Block], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  edge((-2,4), (2,8), "-|>", [sonst], label-pos: 55%, label-side: left, label-sep: 4pt),
+  node((0,8), [sonst], corner-radius: 2pt),
+  edge((-1.5,4), (0,8), "-|>"),
   node((2,8), [parse_expr_stmt], corner-radius: 2pt),
-  edge((2,8), (4,8), "-|>", [;], label-pos: 60%, label-side: right, label-sep: 3pt),
+  edge((0,8), (2,8), "->"),
   node((4,8), [Ende], corner-radius: 2pt),
+  edge((2,8), (4,8), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
 )
+]
+]
 
 Hinweis: `parse_expr` arbeitet rekursiv (z.B. Klammern, Binäroperatoren).
 
-#code-box[
+#figure(kind: "code", caption: [Parser-Einstieg (`parse_program`) (Quelle: src/parser.rs)])[
+  #code-box[
 ```rust
 pub fn parse_program(&mut self) -> Result<Program, ParseError> {
     let mut functions = Vec::new();
@@ -439,13 +530,14 @@ pub fn parse_program(&mut self) -> Result<Program, ParseError> {
 }
 ```
 ]
-#footnote[Quelle: src/parser.rs]
+]
 
 Erläuterung:
 - Der Parser sammelt alle Funktionen bis zum End-Token.
 - Ergebnis ist ein `Program` als Einstiegsknoten des AST.
 
-#code-box[
+#figure(kind: "code", caption: [Funktionsparser Teil 1 (Quelle: src/parser.rs)])[
+  #code-box[
 ```rust
 fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
     // 1) Start mit "fn"
@@ -469,16 +561,18 @@ fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
     self.expect(TokenKind::LParen)?;
 ```
 ]
-#footnote[Quelle: src/parser.rs]
+]
 
 Erläuterung:
 - Erwartet `fn`, danach den Namen und die Parameterliste.
 - Rückgabetyp ist optional und wird nur bei `-> Int` gesetzt.
 - Der Funktionskörper ist ein Block mit Statements.
 
-Fortsetzung: Parameterliste
+// Optional streichen (reiner Layout-Text):
+// Fortsetzung: Parameterliste
 
-#code-box[
+#figure(kind: "code", caption: [Funktionsparser Teil 2 (Quelle: src/parser.rs)])[
+  #code-box[
 ```rust
     let mut params = Vec::new();
     if self.peek().kind != TokenKind::RParen {
@@ -505,11 +599,13 @@ Fortsetzung: Parameterliste
     self.expect(TokenKind::RParen)?;
 ```
 ]
-#footnote[Quelle: src/parser.rs]
+]
 
-Fortsetzung: Rückgabetyp und Funktionskörper
+// Optional streichen (reiner Layout-Text):
+// Fortsetzung: Rückgabetyp und Funktionskörper
 
-#code-box[
+#figure(kind: "code", caption: [Funktionsparser Teil 3 (Quelle: src/parser.rs)])[
+  #code-box[
 ```rust
     // 4) Optionaler Rückgabetyp
     let return_type = if self.peek().kind == TokenKind::Arrow {
@@ -532,7 +628,7 @@ Fortsetzung: Rückgabetyp und Funktionskörper
 }
 ```
 ]
-#footnote[Quelle: src/parser.rs]
+]
 
 #pagebreak()
 
@@ -549,8 +645,15 @@ Zusätzliche Stichpunkte:
 - Eine IR erleichtert spätere Optimierungen, weil Transformationen nicht mehr direkt auf Quellsyntax arbeiten.
 - Der Einsatz einer IR entspricht der Praxis großer Compiler-Infrastrukturen (z.B. LLVM IR als zentrale Zwischenschicht) @llvm-langref.
 - Die Abbildung von Kontrollfluss (`if`, `while`) auf explizite Instruktionsfolgen ist ein zentraler Schritt vom AST zum Zielcode.
+- [MUSS] Mapping `if/else` in WASM herausstellen: Bedingung auf Stack -> `if` -> optional `else` -> `end`.
+- [MUSS] Mapping `while` in WASM herausstellen: `block` + `loop`, invertierte Bedingung mit `br_if`, Rücksprung mit `br 0`.
+- [MUSS] Return-Verhalten dokumentieren: explizites `return` im AST + Fallback-Return im generierten Code.
+- [NICE] Kurze Tabelle `AST-Konstrukt -> IR -> WASM` (je 1 Mini-Beispiel für Addition, Vergleich, `if/else`, `while`).
+- [NICE] Offener Punkt: Dead Code nach `return` wird noch emittiert (keine DCE/CFG-Bereinigung).
+- [STREICHEN] zu viele WASM-Details ohne direkten Bezug zu deinem eigenen Codepfad.
 
-#code-box[
+#figure(kind: "code", caption: [IR-Instruktionen (Quelle: src/codegen/ir.rs)])[
+  #code-box[
 ```rust
 pub enum IrInstruction{
     I64Const(i64),
@@ -581,7 +684,7 @@ pub enum IrInstruction{
 }
 ```
 ]
-#footnote[Quelle: src/codegen/ir.rs]
+]
 
 Erläuterung:
 - `I64Const` entspricht dem Laden einer Konstante im WASM-Stack.
@@ -589,7 +692,8 @@ Erläuterung:
 - `I64Add` und `I64Eq` sind direkte WASM-Arithmetik/Vergleiche.
 - Kontrollfluss wird über `If/Else/Block/Loop/End` abgebildet.
 
-#code-box[
+#figure(kind: "code", caption: [Funktions-Emission (Quelle: src/codegen/module.rs)])[
+  #code-box[
 ```rust
 pub fn emit_function(&mut self, func: &FunctionDecl) {
     let mut r#gen = FuncGen {
@@ -611,7 +715,7 @@ pub fn emit_function(&mut self, func: &FunctionDecl) {
 }
 ```
 ]
-#footnote[Quelle: src/codegen/module.rs]
+]
 
 Erläuterung:
 - Parameter werden zu lokalen Indizes abgebildet.
@@ -627,8 +731,13 @@ Erläuterung:
 - Ablauf: Quelltext → Tokens → AST → WASM‑Bytes → Wasmtime ausführen.
 - `Engine`, `Module`, `Store` und `Instance` sind die zentralen Bausteine der Wasmtime-Ausführung @wasmtime-crate-docs.
 - Imports müssen beim Instanziieren bereitgestellt werden, sonst schlägt das Laden des Moduls fehl @wasmtime-hello-world.
+- [MUSS] Konvention des Projekts explizit machen: Einstieg über exportierte `main`.
+- [MUSS] Validierung erwähnen: ungültiges WASM fällt beim Laden/Instanziieren auf.
+- [NICE] Grenzen der Laufzeit klar benennen (keine Dateisystem-/Netzwerkzugriffe ohne Imports; nur freigegebene Host-Funktionen).
+- [NICE] Messpunkt ergänzen: Compile-Zeit vs. Laufzeitzeit für 1-2 Testprogramme.
 
-#code-box[
+#figure(kind: "code", caption: [WASM-Ausführung mit Wasmtime (Quelle: src/runner.rs)])[
+  #code-box[
 ```rust
 pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, String> {
     let engine = Engine::default();
@@ -655,11 +764,12 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
 }
 ```
 ]
-#footnote[Quelle: src/runner.rs]
+]
 
 Beispiel (Fakultät):
 
-#code-box[
+#figure(kind: "code", caption: [Programmbeispiel: Fakultät (Quelle: factorial.eres)])[
+  #code-box[
 ```rust
 fn fact(n) -> Int {
     if (n <= 1) {
@@ -675,12 +785,39 @@ fn main(){
 }
 ```
 ]
-#footnote[Quelle: factorial.eres]
+]
+
+== Eigener Beitrag und verwendete Tools
+- Eigenleistung: Sprachsyntax festgelegt (`fn`, `let`, `if/else`, `while`, `return`)
+- Eigenleistung: Lexer, Parser, Codegen, Runtime-Anbindung umgesetzt
+- Eigenleistung: Testfälle für Lexer, Parser und Ausführung ergänzt
+- Verwendete Tools: Rust
+- Verwendete Tools: `wasm-encoder`
+- Verwendete Tools: `wasmtime`
+- Verwendete Tools: Typst
+- [NICE] Unterstützung: KI für Strukturierung/Brainstorming
+// Optional streichen, falls Fokus nur auf technische Eigenleistung:
+// - Unterstützung: KI für Strukturierung/Brainstorming
+
+== Testwerkzeuge und CLI-Nutzung
+- Token-Ausgabe: `cargo run -- <datei> --print-tokens`
+- AST-Ausgabe: `cargo run -- <datei> --print-ast`
+- WAT-Ausgabe: `cargo run -- <datei> --print-wat`
+- Artefakt: Token-Stream (Lexer)
+- Artefakt: AST (Parser)
+- Artefakt: WAT (Codegen)
+- [MUSS] Fehlerfall demonstrieren (z.B. unerwartetes Token) inkl. Position/Context der Fehlermeldung.
+- [MUSS] Testmatrix (kurz, tabellarisch): arithmetische Ausdrücke, Vergleich + `if/else`, Schleife, Rekursion (`fact`), Grenzfall (leere Parameterliste/fehlendes Semikolon).
+- [NICE] Gegenüberstellung "erwartete Ausgabe vs. tatsächliche Ausgabe" für 2-3 Programme.
+- [STREICHEN] zu viele CLI-Varianten ohne Erkenntnisgewinn (auf Kernbefehle begrenzen).
 
 
 #pagebreak()
 
 = Fazit
+- Zusammenfassung der zentralen Ergebnisse
+- Persönliche Stellungnahme zur Leitfrage
+- Selbstreflexion: Herausforderungen und Verbesserungen
 
 // - Einheitliches Ziel (WASM) statt viele Plattformen
 // - Backend-Aufwand reduziert
@@ -692,7 +829,17 @@ fn main(){
 //     - mehr proof of concept als geeignet für produktion
 //     - sehr gut zum lernen  
 
-Um die Leitfrage zu beantworten: WebAssembly erleichtert den Bau eigener Compiler für Amateurentwickler erheblich, da es ein einheitliches Ziel bietet und viele plattformspezifische Details im Backend abstrahiert. Allerdings bleibt die Entwicklung eines Compilers eine komplexe Aufgabe, insbesondere im Frontend (Lexing, Parsing, semantische Analyse). Die Abhängigkeit von Host-Imports und der Sandbox-Umgebung von WASM kann ebenfalls Einschränkungen mit sich bringen. Insgesamt ist WASM eine vielversprechende Plattform für Hobby-Compiler, aber es erfordert dennoch ein gewisses Maß an technischem Verständnis und Aufwand.
+// Optional streichen (bereits als Stichpunkte darunter enthalten):
+// Um die Leitfrage zu beantworten: WebAssembly erleichtert den Bau eigener Compiler für Amateurentwickler erheblich, da es ein einheitliches Ziel bietet und viele plattformspezifische Details im Backend abstrahiert. Allerdings bleibt die Entwicklung eines Compilers eine komplexe Aufgabe, insbesondere im Frontend (Lexing, Parsing, semantische Analyse). Die Abhängigkeit von Host-Imports und der Sandbox-Umgebung von WASM kann ebenfalls Einschränkungen mit sich bringen. Insgesamt ist WASM eine vielversprechende Plattform für Hobby-Compiler, aber es erfordert dennoch ein gewisses Maß an technischem Verständnis und Aufwand.
+
+- Zusammenfassung: WASM reduziert Backend-Komplexität
+- Persönliche Stellungnahme: Ziel der Arbeit erreicht / Leitfrage beantwortet
+- Selbstreflexion: größte Herausforderungen (Parserlogik, Codegen, Tooling)
+- Selbstreflexion: nächste Iteration (Fehlerdiagnostik, Typen, Sprachumfang)
+- [MUSS] Leitfrage final gewichten: WASM senkt Einstiegshürde im Backend, Gesamtkomplexität bleibt mittel-hoch wegen Frontend + Semantik.
+- [MUSS] Konkrete Antwortformel für den Schlusssatz: "erleichtert deutlich, ersetzt aber kein Compiler-Grundwissen".
+- [NICE] Ausblick (nächste Iteration): Typchecker, bessere Fehlermeldungen (Zeile/Spalte + Recovery), kleine Optimierungen (constant folding, dead code).
+- [STREICHEN] Wiederholung der Einleitungsaussagen ohne neue Bewertung.
 
 #pagebreak()
 
@@ -700,37 +847,6 @@ Um die Leitfrage zu beantworten: WebAssembly erleichtert den Bau eigener Compile
 = Quellen
 #bibliography("bibliography.yaml", title: none)
 
-
-= Todo
-
-- Diagramme / Programmcode durchnummerieren
-- größere überschriften
-- kein punkt nach unterkapitel: 2.1 und nicht 2.1.
-- mehr platz unter Überschrift
-
-- Einleitungssätze für kapitel vorm ersten inhalt
-
-- was hab ich selbst gemacht
-- was an tools hab ich benutzt:
-    - rust als Programmiersprache
-    - wasm encoder 
-
-- tools zum testen:
-    - tokens 
-    - ast 
-    - wat 
-
-
-- Fazit:
-    - Zusammenfassung
-    - persönliche Stellungnahme
-    - selbstreflektion
-        - herausforderungen
-        - was beim nächsten mal anders machen
-
-    
-
-#pagebreak()
 
 = Anhang: Quellcode
 

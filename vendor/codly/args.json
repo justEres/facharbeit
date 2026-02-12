@@ -38,7 +38,7 @@
     "default-color": {
         "description": "Default color for the language box",
         "default": "rgb(\"#283593\")",
-        "ty": [ "color", "gradient", "pattern" ],
+        "ty": [ "color", "gradient", "tiling" ],
         "function": true
     },
     "radius": {
@@ -56,13 +56,13 @@
     "fill": {
         "description": "Background color of the code lines",
         "default": "none",
-        "ty": [ "type(none)", "color", "gradient", "pattern" ],
+        "ty": [ "type(none)", "color", "gradient", "tiling" ],
         "function": true
     },
     "zebra-fill": {
         "description": "Background color of the code lines when zebra-stripped",
         "default": "luma(240)",
-        "ty": [ "type(none)", "color", "gradient", "pattern" ],
+        "ty": [ "type(none)", "color", "gradient", "tiling" ],
         "function": true
     },
     "stroke": {
@@ -98,7 +98,7 @@
     "lang-fill": {
         "description": "The background color of the language box, can be a function that gets called with the language definition or none.",
         "default": "(lang) => lang.color.lighten(80%)",
-        "ty": [ "type(none)", "color", "gradient", "pattern", "function" ],
+        "ty": [ "type(none)", "color", "gradient", "tiling", "function" ],
         "function": false
     },
     "lang-format": {
