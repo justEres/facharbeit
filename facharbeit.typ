@@ -17,9 +17,12 @@
 // Nutzt die lokal installierte Schriftfamilie (siehe ~/.local/share/fonts)
 #set par(justify: true, leading: 0.75em)
 
-#show heading: set block(above: 0.9em, below: 0.8em)
-#show heading.where(level: 1): set text(size: 15pt)
+#show heading: set block(above: 0.9em, below: 0.3cm)
+#show heading.where(level: 1): set block(below: 0.75cm)
+#show heading.where(level: 1): set text(size: 16pt)
+#show heading.where(level: 2): set block(below: 0.45cm)
 #show heading.where(level: 2): set text(size: 13pt)
+#show heading.where(level: 3): set block(below: 0.3cm)
 #show heading.where(level: 3): set text(size: 12pt)
 
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
@@ -166,13 +169,14 @@ generiert.
 Auf Basis dieser Erfahrungen werden die Chancen und Grenzen von WebAssembly 
 als Compilation Target für Hobby-Compiler bewertet.
 
-#pagebreak()
+Die Ergebnisse zeigen, dass WebAssembly in vielerlei Hinsicht den Einstieg in den Compilerbau erleichtert. Insbesondere die plattformunabhängige Natur von WASM und die Abstraktion von Hardwaredetails ermöglichen es Entwicklern, sich auf die Implementierung der Sprache und der Compiler-Logik zu konzentrieren, ohne sich um die spezifischen Anforderungen verschiedener Zielarchitekturen kümmern zu müssen.
 
 
 = Compiler
-- Einordnung: Grundbegriffe des Compilerbaus
-- Fokus: Frontend, Backend, Zielformat WASM
-- Bezug zur Leitfrage: technischer Aufwand vs. Vereinfachung durch WASM
+// - Einordnung: Grundbegriffe des Compilerbaus
+// - Fokus: Frontend, Backend, Zielformat WASM
+// - Bezug zur Leitfrage: technischer Aufwand vs. Vereinfachung durch WASM
+Was ist ein Compiler? Wie ist er aufgebaut? Welche Rolle spielt das Backend? Warum ist WebAssembly als Ziel interessant?
 
 == Was ist ein Compiler?
 // - Übersetzt Quellcode in eine andere Darstellung (meist maschinennahe Form).
@@ -181,11 +185,11 @@ als Compilation Target für Hobby-Compiler bewertet.
 // - Vorteil: schnellere Ausführung, Optimierungen vorab möglich.
 // - Nachteil: zusätzlicher Übersetzungsschritt, Fehler erst beim Kompilieren sichtbar.
 
-Einen Compiler ist ein Programm, welches Programmcode in eine andere für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine Virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können.
+Einen Compiler ist ein Programm, welches Programmcode in eine andere für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine Virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können. Zusätzlich erleichtern moderne Compiler den Entwicklern das Leben, indem sie häufige Fehler schon beim Übersetzen des Quellcodes finden und verständliche Fehlermeldungen ausgeben, während Interpreter Fehler erst zur Laufzeit sichtbar werden, was die Fehlersuche erschwert @ibm-compiler. Wenn der Begriff "Compiler" fällt, ist selten nur der reine Übersetzungsvorgang gemeint, sondern oft die gesamte Toolchain, die auch Assembler und Linker umfasst, um aus Quellcode eine ausführbare Datei zu erzeugen @gcc-overall-options. 
 
-Zusätzliche Stichpunkte:
-- Der Übersetzungsvorgang wird in der Praxis oft als Teil einer Toolchain betrachtet (inkl. Assembler und Linker) @gcc-overall-options.
-- Für Entwickler ist wichtig: Compiler-Fehler sind Diagnoseausgaben zur Übersetzungszeit und treten vor der Programmausführung auf @gcc-overall-options.
+// Zusätzliche Stichpunkte:
+// - Der Übersetzungsvorgang wird in der Praxis oft als Teil einer Toolchain betrachtet (inkl. Assembler und Linker) @gcc-overall-options.
+// - Für Entwickler ist wichtig: Compiler-Fehler sind Diagnoseausgaben zur Übersetzungszeit und treten vor der Programmausführung auf @gcc-overall-options.
 
 
 
@@ -199,14 +203,14 @@ Zusätzliche Stichpunkte:
 // - Codeerzeugung: Registerallokation, Instruktionsauswahl, Plattformdetails.
 // - Ausgabe: Binärdatei, Objektdatei oder Bytecode.
 
-Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgegrenzte Aufgaben übernehmen: Lexing (Erzeugung von Token aus Quelltext), Parsing (Aufbau eines abstrakten Syntaxbaums, AST), semantische Analyse (Typprüfung, Namensauflösung, Scope- und Fehlerprüfung), eine Zwischenrepräsentation und Optimierungsphase (IR‑Transformationen, konstante Auswertung, Dead‑Code‑Elimination) sowie das Backend (Code‑ bzw. Bytecode‑Generierung, z. B. für WebAssembly). Diese Modularität erleichtert Entwicklung, Testbarkeit und Wiederverwendbarkeit der einzelnen Komponenten.
+Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgegrenzte Aufgaben übernehmen: Lexing (Erzeugung von Token aus Quelltext), Parsing (Aufbau eines abstrakten Syntaxbaums, AST), semantische Analyse (Typprüfung, Namensauflösung, Scope- und Fehlerprüfung), eine Zwischenrepräsentation und Optimierungsphase (IR-Transformationen, konstante Auswertung, Dead-Code-Elimination) sowie das Backend (Code- bzw. Bytecode-Generierung, z.B. für WebAssembly). Diese Modularität erleichtert Entwicklung, Testbarkeit und Wiederverwendbarkeit der einzelnen Komponenten. Zusätzlich bietet diese Struktur die Möglichkeit, verschiedene Frontends (für unterschiedliche Sprachen) mit demselben Backend zu kombinieren, was die Flexibilität erhöht. Moderne Compiler sind genau entlang solcher Schritte aufgebaut @rustc-overview. 
 
 Zusätzliche Stichpunkte:
-- Die Trennung in Frontend und Backend erlaubt, mehrere Sprachen auf dasselbe Backend abzubilden.
-- Zwischenrepräsentationen entkoppeln Sprachsyntax und Zielplattform und erleichtern Optimierungen @llvm-langref.
+// - Die Trennung in Frontend und Backend erlaubt, mehrere Sprachen auf dasselbe Backend abzubilden.
+// - Zwischenrepräsentationen entkoppeln Sprachsyntax und Zielplattform und erleichtern Optimierungen @rustc-overview.
 - In realen Toolchains werden Vorverarbeitung, Kompilierung, Assemblierung und Linking als getrennte Schritte modelliert @gcc-overall-options.
 
-Quellen: @wiki-compiler; @radford-compiler-phases
+Quellen: @ibm-compiler; @rustc-overview; @rustc-parser
 
 == Einführung in WebAssembly
 // - WebAssembly (WASM): binäres, plattformunabhängiges Ausführungsformat.
@@ -217,15 +221,19 @@ Quellen: @wiki-compiler; @radford-compiler-phases
 // - Unterstützte Sprachen: z.B. C/C++, Rust, AssemblyScript (via Compiler-Toolchains).
 // - Relevanz für Compilerbau: einheitliches Target, weniger Plattformdetails im Backend.
 
-WebAssembly (WASM) ist ein binäres, plattformunabhängiges Ausführungsformat, das ursprünglich für die Ausführung in Webbrowsern entwickelt wurde, aber inzwischen auch außerhalb des Webs, z.B. auf Servern oder in Tools, genutzt werden kann. Es zielt darauf ab, eine nahe an nativer Geschwindigkeit liegende Ausführung zu ermöglichen, während es gleichzeitig portabel und sicher bleibt. WASM-Module bestehen aus Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen. Die Ausführung erfolgt in einer Sandbox-Umgebung, wobei der Zugriff auf Systemfunktionen über Host-Imports erfolgt. WASM wird von vielen Sprachen unterstützt, darunter C/C++, Rust und AssemblyScript, die über Compiler-Toolchains in WASM übersetzt werden können. Für den Compilerbau bietet WASM ein einheitliches Target, wodurch viele plattformspezifische Details im Backend entfallen.
+WebAssembly (WASM) ist ein binäres, plattformunabhängiges Ausführungsformat, das ursprünglich für die Ausführung in Webbrowsern entwickelt wurde, aber inzwischen auch außerhalb des Webs, z.B. auf Servern oder in Tools, genutzt werden kann. Es zielt darauf ab, eine nahe an nativer Geschwindigkeit liegende Ausführung zu ermöglichen, während es gleichzeitig portabel und sicher bleibt. WASM-Module bestehen aus Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen. Die Ausführung erfolgt in einer Sandbox-Umgebung, wobei der Zugriff auf Systemfunktionen über Host-Imports erfolgt. WASM wird von vielen Sprachen unterstützt, darunter C/C++, Rust und AssemblyScript, die über Compiler-Toolchains in WASM übersetzt werden können. Für den Compilerbau bietet WASM eine einheitliche Zielplattform, wodurch viele plattformspezifische Details im Backend entfallen. Unter anderem deswegen ist WASM besonders attraktiv für Hobby-Compiler, da es die Komplexität der Codegenerierung reduziert und den Fokus auf die Sprachlogik und -semantik ermöglicht @mdn-wasm-concepts.
 
-Zusätzliche Stichpunkte:
-- WASM ist als Stack-Maschine definiert: Instruktionen arbeiten primär auf einem Operand-Stack @wasm-spec.
+Das Grundprinzip nach dem Wasm arbeitet ist die Stack-Maschine, bei der Instruktionen primär auf einem Operand-Stack operieren. Zum Beispiel nimmt die `add`-Instruktion die obersten zwei Werte vom Stack, addiert sie und legt das Ergebnis wieder auf den Stack. Dies ermöglicht eine einfache und effiziente Ausführung von Anweisungen, da keine expliziten Register oder Speicheradressen benötigt werden @mdn-wasm-text-format; @wasm-spec.
+
+// - Stack erklären: Stapel teller, add instruktion nimmt die obersten 2 und legt das erbebnis drauf
+
+// Zusätzliche Stichpunkte:
+// - WASM ist als Stack-Maschine definiert: Instruktionen arbeiten primär auf einem Operand-Stack @mdn-wasm-text-format; @wasm-spec.
 - Module werden vor der Ausführung validiert (z.B. Typkonsistenz von Instruktionen) @wasm-w3c-core.
-- Textformat (WAT) und Binärformat bilden dieselbe Modulstruktur ab; WAT ist vor allem für Debugging und Lernen nützlich @wasm-spec.
+- Textformat (WAT) und Binärformat bilden dieselbe Modulstruktur ab; WAT ist vor allem für Debugging und Lernen nützlich @mdn-wasm-text-format; @wasm-spec.
 
 
-Beispiel (Quellcode → WAT):
+Hier ein Beispiel von Quellcode in unserer eigenen Sprache, der eine einfache Addition durchführt und das entsprechende WebAssembly Textformat (WAT), das daraus generiert wird.
 
 #figure(kind: "code", caption: [Programmbeispiel: Addition in eigener Sprache (Quelle: add.eres)])[
   #code-box[
@@ -282,6 +290,8 @@ fn main(){
 - Fokus: vollständige Pipeline von Quelltext bis Ausführung
 - Ergebnisartefakte: Tokens, AST, WAT, Laufzeitausgabe
 
+Die Konzepte des Compilerbaus und die Funktionsweise von WebAssembly wurden nun theoretisch erläutert. Um die praktische Umsetzbarkeit dieser Konzepte zu überprüfen, wird im folgenden Abschnitt ein eigener Mini-Compiler entwickelt. Dieser Compiler soll eine eigens definierte, minimalistische Programmiersprache in WebAssembly-Bytecode übersetzen. Dabei wird die gesamte Pipeline von der Quelltexteingabe über die Tokenisierung, das Parsing, die semantische Analyse bis hin zur Codegenerierung und Ausführung durchlaufen. Ziel ist es, nicht nur die technischen Schritte zu demonstrieren, sondern auch konkrete Artefakte wie die erzeugten Tokens, den abstrakten Syntaxbaum (AST), das generierte WAT und die Laufzeitausgabe zu präsentieren.
+
 == Funktionsumfang der eigenen Programmiersprache
 // - Minimaler Datentyp: `Int` (Ganzzahl, intern `i64`).
 // - Programmbau: nur Funktionen, keine globalen Variablen.
@@ -327,7 +337,47 @@ Erläuterung:
 // - Operatoren und Trennzeichen: `+ - * / % ( ) { } , ; : ->`.
 // - Fehlerbehandlung: unerwartete Zeichen, ungültige Zahlen.
 
-Der Lexer liest den Quelltext Zeichen für Zeichen und gruppiert sie in sinnvolle Einheiten, sogenannte Tokens. Er erkennt Schlüsselwörter wie `fn`, `let`, `if`, `else`, `while` und `return`, die eine spezielle Bedeutung haben. Außerdem identifiziert er Literale (z.B. Ganzzahlen) und Identifier (z.B. Funktions- oder Variablennamen). Operatoren und Trennzeichen werden ebenfalls als eigene Token klassifiziert. Bei der Verarbeitung des Quelltexts muss der Lexer auch Fehler erkennen, z.B. wenn ein unerwartetes Zeichen auftaucht oder eine Zahl ungültig formatiert ist.
+Der Lexer liest den Quelltext Zeichen für Zeichen und gruppiert sie in sinnvolle Einheiten, sogenannte Tokens. Er erkennt Schlüsselwörter wie `fn`, `let`, `if`, `else`, `while` und `return`, die eine spezielle Bedeutung haben. Außerdem identifiziert er Literale (z.B. Ganzzahlen) und Identifier (z.B. Funktions- oder Variablennamen). Operatoren und Trennzeichen werden ebenfalls als eigene Token klassifiziert. Bei der Verarbeitung des Quelltexts muss der Lexer auch Fehler erkennen, z.B. wenn ein unerwartetes Zeichen auftaucht oder eine Zahl ungültig formatiert ist @crafting-scanning; @rustc-parser.
+
+Priorisierte Stichpunkte (Lexer):
+- [MUSS] Klarer Ablauf: Whitespace überspringen -> Zahl/Identifier/Operator erkennen -> Token ausgeben.
+- [MUSS] Trennlogik erklären: Ein Token endet, sobald ein Zeichen nicht mehr zur aktuellen Klasse passt.
+- [MUSS] Schlüsselwort vs. Identifier erklären: gleiche Lesephase, Entscheidung erst am Ende.
+- [MUSS] Fehlerfall erklären: unbekanntes Zeichen erzeugt direkt einen Lexer-Fehler.
+- [NICE] Typische Mini-Beispiele angeben: `let x=3;` -> `Let, Ident(x), Equal, Int(3), Semicolon`.
+- [STREICHEN] Vollständige Auflistung jedes einzelnen Tokens im Fließtext.
+
+#figure(kind: "code", caption: [Vereinfachter Lexer-Hauptlauf (Quelle: src/lexer.rs)])[
+  #code-box[
+```rust
+fn next_token(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> TokenKind {
+    while let Some(&c) = chars.peek() {
+        if c.is_whitespace() {
+            chars.next();
+            continue;
+        }
+
+        if c.is_ascii_alphabetic() || c == '_' {
+            return lex_ident(chars);
+        }
+        if c.is_ascii_digit() {
+            return lex_number(chars);
+        }
+
+        chars.next();
+        return match c {
+            '+' => TokenKind::Plus,
+            '-' => TokenKind::Minus,
+            ';' => TokenKind::Semicolon,
+            _ => TokenKind::Error,
+        };
+    }
+
+    TokenKind::EOF
+}
+```
+]
+]
 
 #figure(kind: "diagram", caption: [Zustandsmodell des Lexers])[
   #diagram-box[
@@ -376,25 +426,18 @@ Der Lexer liest den Quelltext Zeichen für Zeichen und gruppiert sie in sinnvoll
 ```rust
 pub enum TokenKind {
     // Schlüsselwörter
-    Let, Fn, If, Else, While, Return,
+    Let, Return, If, While,
 
-    // Bezeichner + Literale
+    // Inhalte
     Ident(String), Int(i64),
 
-    // Operatoren
-    Plus, Minus, Star, Slash, Percentage, Equal,
+    // Operatoren / Trenner
+    Plus, Minus, Star, Slash, Equal,
+    LParen, RParen, LBrace, RBrace, Semicolon,
 
-    // Vergleichsoperatoren
-    EqualEqual, NotEqual, Less, LessEqual, Greater, GreaterEqual,
-
-    // Trenner
-    LParen, RParen, LBrace, RBrace, Semicolon, Comma,
-
-    // Typen / Hinweise
-    Colon, Arrow, IntType,
-
-    // Dateiende
+    // Ende / Fehler
     EOF,
+    Error,
 }
 ```
 ]
@@ -408,30 +451,27 @@ Erläuterung:
 #figure(kind: "code", caption: [Identifier-Lexing (Quelle: src/lexer.rs)])[
   #code-box[
 ```rust
-pub fn lex_ident(&mut self, first_char: char) -> TokenKind {
-    let mut ident_str = first_char.to_string();
+fn keyword_or_ident(text: String) -> TokenKind {
+    match text.as_str() {
+        "let" => TokenKind::Let,
+        "return" => TokenKind::Return,
+        "if" => TokenKind::If,
+        "while" => TokenKind::While,
+        _ => TokenKind::Ident(text),
+    }
+}
 
-    // Solange Buchstaben/Ziffern folgen, weiter einsammeln
-    while let Some(c) = self.peek() {
+fn lex_ident(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> TokenKind {
+    let mut text = String::new();
+    while let Some(&c) = chars.peek() {
         if c.is_ascii_alphanumeric() || c == '_' {
-            ident_str.push(c);
-            self.bump();
+            text.push(c);
+            chars.next();
         } else {
             break;
         }
     }
-
-    // Schlüsselwörter werden erkannt, sonst normaler Bezeichner
-    match ident_str.as_str() {
-        "let" => TokenKind::Let,
-        "fn" => TokenKind::Fn,
-        "if" => TokenKind::If,
-        "else" => TokenKind::Else,
-        "while" => TokenKind::While,
-        "return" => TokenKind::Return,
-        "Int" => TokenKind::IntType,
-        _ => TokenKind::Ident(ident_str),
-    }
+    keyword_or_ident(text)
 }
 ```
 ]
@@ -440,6 +480,29 @@ pub fn lex_ident(&mut self, first_char: char) -> TokenKind {
 Erläuterung:
 - Zeichenfolge wird gesammelt und dann gegen Schlüsselwörter geprüft.
 - Alles, was kein Schlüsselwort ist, wird als `Ident(...)` behandelt.
+
+#figure(kind: "code", caption: [Zahlen-Lexing (vereinfacht, Quelle: src/lexer.rs)])[
+  #code-box[
+```rust
+fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> TokenKind {
+    let mut text = String::new();
+    while let Some(&c) = chars.peek() {
+        if c.is_ascii_digit() {
+            text.push(c);
+            chars.next();
+        } else {
+            break;
+        }
+    }
+
+    match text.parse::<i64>() {
+        Ok(value) => TokenKind::Int(value),
+        Err(_) => TokenKind::Error,
+    }
+}
+```
+]
+]
 
 #pagebreak()
 
@@ -453,17 +516,85 @@ Erläuterung:
 Der Parser nimmt die vom Lexer erzeugte Tokenliste und baut daraus einen abstrakten Syntaxbaum (AST) auf, der die hierarchische Struktur des Programms widerspiegelt. Der Einstiegspunkt ist die Funktion `parse_program`, die alle Funktionen im Quelltext sammelt, bis sie das End-Token (`EOF`) erreicht. Jede Funktion wird durch `fn name(params) -> Int { ... }` definiert, wobei der Rückgabetyp optional ist. Blöcke werden als Sequenzen von Statements in `{ ... }` dargestellt. Für Ausdrücke wird ein spezieller Parser mit Präzedenzregeln implementiert, um die korrekte Bindung von Operatoren sicherzustellen.
 
 Zusätzliche Stichpunkte:
-- Der gewählte Ansatz entspricht einem rekursiven Abstieg, bei dem Nichtterminale durch Funktionen umgesetzt werden @llvm-kaleidoscope-parser.
-- Operator-Präzedenz wird typischerweise über eine Prioritätstabelle gesteuert, damit z.B. `*` stärker bindet als `+` @llvm-kaleidoscope-parser.
-- Der AST trennt konkrete Syntax (Tokens, Klammern) von semantisch relevanter Struktur (Ausdrücke, Statements) @llvm-kaleidoscope-parser.
-- [MUSS] Operator-Präzedenz im eigenen Parser konkret zeigen: `1 + 2 * 3` wird als `1 + (2 * 3)` geparst.
-- [MUSS] Assoziativität festhalten: linksassoziativ für `+ - * /`, Vergleichsoperatoren nur in klaren Paaren.
-- [MUSS] Fehlerstrategie erwähnen: Parser bricht bei erstem harten Fehler ab (kein Recovery/Synchronisation).
-- [MUSS] Kurzer Ablauf `parse_expr`: `parse_primary` -> Binäroperationen nach Präzedenz -> AST-Knoten.
+- Der gewählte Ansatz entspricht einem rekursiven Abstieg, bei dem Nichtterminale durch Funktionen umgesetzt werden @crafting-parsing-expr.
+- Operator-Präzedenz wird typischerweise über eine Prioritätstabelle gesteuert, damit z.B. `*` stärker bindet als `+` @crafting-parsing-expr.
+- Der AST trennt konkrete Syntax (Tokens, Klammern) von semantisch relevanter Struktur (Ausdrücke, Statements) @rustc-parser.
+- [MUSS] Operator-Präzedenz: `*` und `/` werden vor `+` und `-` gebunden.
+- [MUSS] Beispiel zur Präzedenz: `1 + 2 * 3` ergibt AST-Form `Add(1, Mul(2, 3))`.
+- [MUSS] Assoziativität: `10 - 3 - 2` wird als `(10 - 3) - 2` geparst (linksassoziativ).
+- [MUSS] Fehlerstrategie: bei unerwartetem Token sofort `Err(...)`, kein Weiterparsen.
+- [MUSS] Ablauf `parse_expr`: zuerst linker Basis-Ausdruck, dann Operatoren in Präzedenz-Reihenfolge anhängen.
 - [NICE] Mini-Beispiel AST-Form: Quelle `a + b * c` -> `Add(Var(a), Mul(Var(b), Var(c)))`.
 - [NICE] Scope-Verhalten bei Blöcken benennen: Variablenzuordnung über lokale Indizes statt echter Symboltabellen-Hierarchie.
 - [NICE] Optional 1 Tabelle mit Operatoren + Priorität + Assoziativität.
 - [STREICHEN] sehr detaillierte Randfälle (z.B. alle nicht unterstützten Syntaxformen) nur kurz nennen statt breit ausführen.
+
+Umsetzung der [MUSS]-Punkte (stichpunktartig):
+- Präzedenz wird als Zahl modelliert (`*` > `+`).
+- Die `while`-Schleife in `parse_expr` hängt so lange Operatoren an, wie deren Präzedenz hoch genug ist.
+- Linksassoziativität entsteht durch `parse_expr(prec + 1)` auf der rechten Seite.
+- Fehler entstehen zentral über `expect(...)` und werden als `Result::Err` weitergegeben.
+
+#figure(kind: "code", caption: [Operator-Präzedenz (vereinfacht, Quelle: src/parser.rs)])[
+  #code-box[
+```rust
+fn precedence(kind: &TokenKind) -> Option<u8> {
+    match kind {
+        TokenKind::Star | TokenKind::Slash => Some(20),
+        TokenKind::Plus | TokenKind::Minus => Some(10),
+        _ => None,
+    }
+}
+
+fn parse_expr(&mut self, min_prec: u8) -> Result<Expr, ParseError> {
+    let mut left = self.parse_primary()?;
+
+    while let Some(op_prec) = precedence(&self.peek().kind) {
+        if op_prec < min_prec {
+            break;
+        }
+
+        let op = self.bump().kind.clone();
+        let right = self.parse_expr(op_prec + 1)?; // linksassoziativ
+        left = Expr::Binary(Box::new(left), op, Box::new(right));
+    }
+
+    Ok(left)
+}
+```
+]
+]
+
+#figure(kind: "code", caption: [Statement-Dispatch (vereinfacht, Quelle: src/parser.rs)])[
+  #code-box[
+```rust
+fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
+    match self.peek().kind {
+        TokenKind::Let => self.parse_let(),
+        TokenKind::Return => self.parse_return(),
+        TokenKind::If => self.parse_if(),
+        TokenKind::While => self.parse_while(),
+        _ => self.parse_expr_stmt(),
+    }
+}
+```
+]
+]
+
+#figure(kind: "code", caption: [Fehlerstrategie mit `expect` (vereinfacht, Quelle: src/parser.rs)])[
+  #code-box[
+```rust
+fn expect(&mut self, expected: TokenKind) -> Result<(), ParseError> {
+    let found = self.bump().kind.clone();
+    if found == expected {
+        Ok(())
+    } else {
+        Err(ParseError::new(expected, found))
+    }
+}
+```
+]
+]
 
 
 #figure(kind: "diagram", caption: [Zustandsmodell der Statement-Parserlogik])[
@@ -540,24 +671,8 @@ Erläuterung:
   #code-box[
 ```rust
 fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
-    // 1) Start mit "fn"
     self.expect(TokenKind::Fn)?;
-
-    // 2) Funktionsname lesen
-    let name = match self.bump().kind.clone() {
-        TokenKind::Ident(s) => s,
-        tok => {
-            return Err(ParseError::UnexpectedToken {
-                expected: "identifier".to_string(),
-                found: Token {
-                    kind: tok,
-                    span: self.peek().span.clone(),
-                },
-            });
-        }
-    };
-
-    // 3) Parameterliste öffnen
+    let name = self.expect_ident()?;
     self.expect(TokenKind::LParen)?;
 ```
 ]
@@ -574,28 +689,7 @@ Erläuterung:
 #figure(kind: "code", caption: [Funktionsparser Teil 2 (Quelle: src/parser.rs)])[
   #code-box[
 ```rust
-    let mut params = Vec::new();
-    if self.peek().kind != TokenKind::RParen {
-        // Parameter: name, name, name
-        loop {
-            match self.bump().kind.clone() {
-                TokenKind::Ident(s) => params.push(s),
-                _ => {
-                    return Err(ParseError::UnexpectedToken {
-                        expected: "parameter name".to_string(),
-                        found: self.peek().clone(),
-                    });
-                }
-            }
-
-            if self.peek().kind == TokenKind::Comma {
-                self.bump();
-            } else {
-                break;
-            }
-        }
-    }
-
+    let params = self.parse_params()?;
     self.expect(TokenKind::RParen)?;
 ```
 ]
@@ -607,16 +701,14 @@ Erläuterung:
 #figure(kind: "code", caption: [Funktionsparser Teil 3 (Quelle: src/parser.rs)])[
   #code-box[
 ```rust
-    // 4) Optionaler Rückgabetyp
     let return_type = if self.peek().kind == TokenKind::Arrow {
         self.bump();
         self.expect(TokenKind::IntType)?;
-        Some(crate::ast::Type::Int)
+        Some(Type::Int)
     } else {
         None
     };
 
-    // 5) Funktionskörper (Block)
     let body = self.parse_block()?;
 
     Ok(FunctionDecl {
