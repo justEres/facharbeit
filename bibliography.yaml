@@ -3,7 +3,7 @@ wasm-spec:
   title: WebAssembly Core Specification
   author: WebAssembly Community Group
   year: 2023
-  url: https://webassembly.github.io/spec/
+  url: https://webassembly.github.io/spec/core
   accessed: 2026-01-21
 
 mdn-wasm-concepts:
