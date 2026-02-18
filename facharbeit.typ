@@ -19,10 +19,10 @@
 
 #show heading: set block(above: 0.9em, below: 0.3cm)
 #show heading.where(level: 1): set block(below: 0.75cm)
-#show heading.where(level: 1): set text(size: 16pt)
-#show heading.where(level: 2): set block(below: 0.45cm)
-#show heading.where(level: 2): set text(size: 13pt)
-#show heading.where(level: 3): set block(below: 0.3cm)
+#show heading.where(level: 1): set text(size: 18pt)
+#show heading.where(level: 2): set block(below: 0.55cm, above: 0.65cm)
+#show heading.where(level: 2): set text(size: 15pt)
+#show heading.where(level: 3): set block(below: 0.4cm, above: 0.5cm)
 #show heading.where(level: 3): set text(size: 12pt)
 
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
@@ -96,6 +96,14 @@
   )
   #align(left)[#it]
 ]
+#show raw.where(block: false): it => box(
+  
+  fill: rgb("#f0f0f0"),
+  radius: 2pt,
+  outset: (x: 3pt, y: 2pt),
+)[
+  #it
+]
 #set page(margin: 0pt, numbering: none)
 #image("formblaetter.pdf", page: 1, width: 100%, height: 100%)
 #pagebreak()
@@ -122,12 +130,12 @@
 = Einleitung
 
 Unterschiedliche Programmiersprachen haben die verschiedensten Funktionen, ihre eigene Syntax oder sind speziell auf einen Anwendungsfall zugeschnitten.
-So ist es ein Traum vieler Entwickler sich ihre eigene Programmiersprache zu erschaffen die perfekt an die eigenen Bedürfnisse angepasst ist.
+So ist es ein Traum vieler Entwickler, sich eine eigene Programmiersprache zu erschaffen, die perfekt an die eigenen Bedürfnisse angepasst ist.
 
 Trotzdem bleibt die Entwicklung einer eigenen Programmiersprache für viele Entwickler ein fernes Ziel, da sie häufig mit einem hohen technischen Aufwand verbunden ist und viel Erfahrung erfordert.
 Ein wesentlicher Grund dafür liegt im Bau eines sogenannten Compilers. 
 
-Ein Compiler ist ein Programm, welches Quellcode in eine für den Computer ausführbare Form übersetzt. Der komplexeste teil ist dabei das Backend, welches für die Erzeugung von plattformspezifischem Maschinencode verantwortlich ist. Unterschiedliche Prozessorarchitekturen und Betriebssysteme erfordern jeweils eigene 
+Ein Compiler ist ein Programm, welches Quellcode in eine für den Computer ausführbare Form übersetzt. Der komplexeste Teil ist dabei das Backend, welches für die Erzeugung von plattformspezifischem Maschinencode verantwortlich ist. Unterschiedliche Prozessorarchitekturen und Betriebssysteme erfordern jeweils eigene 
 Lösungen, was den Entwicklungsaufwand stark erhöht. 
 Aus diesem Grund werden Compiler in der Regel von größeren Entwicklerteams oder 
 Unternehmen realisiert und nur selten von einzelnen Amateurentwicklern.
@@ -153,16 +161,16 @@ Anschließend wird in einem praktischen Selbstversuch ein einfacher Mini-Compile
 für eine eigens definierte Programmiersprache entwickelt, der WebAssembly-Bytecode 
 generiert. 
 Auf Basis dieser Erfahrungen werden die Chancen und Grenzen von WebAssembly 
-als Compilation Target für Hobby-Compiler bewertet.
+als Zielplattform für Hobby-Compiler bewertet.
 
 Die Ergebnisse zeigen, dass WebAssembly in vielerlei Hinsicht den Einstieg in den Compilerbau erleichtert. Insbesondere die plattformunabhängige Natur von WASM und die Abstraktion von Hardwaredetails ermöglichen es Entwicklern, sich auf die Implementierung der Sprache und der Compiler-Logik zu konzentrieren, ohne sich um die spezifischen Anforderungen verschiedener Zielarchitekturen kümmern zu müssen.
 
 
-= Compiler
+= Vorwissen: Compiler und WebAssembly
 // - Einordnung: Grundbegriffe des Compilerbaus
 // - Fokus: Frontend, Backend, Zielformat WASM
 // - Bezug zur Leitfrage: technischer Aufwand vs. Vereinfachung durch WASM
-Was ist ein Compiler? Wie ist er aufgebaut? Welche Rolle spielt das Backend? Warum ist WebAssembly als Ziel interessant?
+Dieses Kapitel führt in die Grundkonzepte des Compilerbaus ein und erläutert die Architektur eines Compilers. Der Fokus liegt auf dem Verständnis, warum WebAssembly als Zielplattform eine vielversprechende Vereinfachung für Hobby-Compiler darstellt.
 
 == Was ist ein Compiler?
 // - Übersetzt Quellcode in eine andere Darstellung (meist maschinennahe Form).
@@ -171,7 +179,7 @@ Was ist ein Compiler? Wie ist er aufgebaut? Welche Rolle spielt das Backend? War
 // - Vorteil: schnellere Ausführung, Optimierungen vorab möglich.
 // - Nachteil: zusätzlicher Übersetzungsschritt, Fehler erst beim Kompilieren sichtbar.
 
-Einen Compiler ist ein Programm, welches Programmcode in eine andere für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine Virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können. Zusätzlich erleichtern moderne Compiler den Entwicklern das Leben, indem sie häufige Fehler schon beim Übersetzen des Quellcodes finden und verständliche Fehlermeldungen ausgeben, während Interpreter Fehler erst zur Laufzeit sichtbar werden, was die Fehlersuche erschwert @ibm-compiler. Wenn der Begriff "Compiler" fällt, ist selten nur der reine Übersetzungsvorgang gemeint, sondern oft die gesamte Toolchain, die auch Assembler und Linker umfasst, um aus Quellcode eine ausführbare Datei zu erzeugen @gcc-overall-options. 
+Ein Compiler ist ein Programm, welches Programmcode in eine andere, für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können. Zusätzlich erleichtern moderne Compiler den Entwicklern das Leben, indem sie häufige Fehler schon beim Übersetzen des Quellcodes finden und verständliche Fehlermeldungen ausgeben, während Interpreter Fehler erst zur Laufzeit sichtbar werden, was die Fehlersuche erschwert @ibm-compiler. Wenn der Begriff "Compiler" fällt, ist selten nur der reine Übersetzungsvorgang gemeint, sondern oft die gesamte Toolchain, die auch Assembler und Linker umfasst, um aus Quellcode eine ausführbare Datei zu erzeugen @gcc-overall-options.
 
 // Zusätzliche Stichpunkte:
 // - Der Übersetzungsvorgang wird in der Praxis oft als Teil einer Toolchain betrachtet (inkl. Assembler und Linker) @gcc-overall-options.
@@ -209,7 +217,7 @@ Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgeg
 
 WebAssembly (WASM) ist ein binäres, plattformunabhängiges Ausführungsformat, das ursprünglich für die Ausführung in Webbrowsern entwickelt wurde, aber inzwischen auch außerhalb des Webs, z.B. auf Servern oder in Tools, genutzt werden kann. Es zielt darauf ab, eine nahe an nativer Geschwindigkeit liegende Ausführung zu ermöglichen, während es gleichzeitig portabel und sicher bleibt. WASM-Module bestehen aus Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen. Die Ausführung erfolgt in einer Sandbox-Umgebung, wobei der Zugriff auf Systemfunktionen über Host-Imports erfolgt. WASM wird von vielen Sprachen unterstützt, darunter C/C++, Rust und AssemblyScript, die über Compiler-Toolchains in WASM übersetzt werden können. Für den Compilerbau bietet WASM eine einheitliche Zielplattform, wodurch viele plattformspezifische Details im Backend entfallen. Unter anderem deswegen ist WASM besonders attraktiv für Hobby-Compiler, da es die Komplexität der Codegenerierung reduziert und den Fokus auf die Sprachlogik und -semantik ermöglicht @mdn-wasm-concepts.
 
-Das Grundprinzip nach dem Wasm arbeitet ist die Stack-Maschine, bei der Instruktionen primär auf einem Operand-Stack operieren. Zum Beispiel nimmt die `add`-Instruktion die obersten zwei Werte vom Stack, addiert sie und legt das Ergebnis wieder auf den Stack. Dies ermöglicht eine einfache und effiziente Ausführung von Anweisungen, da keine expliziten Register oder Speicheradressen benötigt werden @mdn-wasm-text-format; @wasm-spec.
+Das Grundprinzip, nach dem WASM arbeitet, ist die Stack-Maschine, bei der Instruktionen primär auf einem Operand-Stack operieren. Zum Beispiel nimmt die `add`-Instruktion die obersten zwei Werte vom Stack, addiert sie und legt das Ergebnis wieder auf den Stack. Dies ermöglicht eine einfache und effiziente Ausführung von Anweisungen, da keine expliziten Register oder Speicheradressen benötigt werden @mdn-wasm-text-format; @wasm-spec.
 
 // - Stack erklären: Stapel teller, add instruktion nimmt die obersten 2 und legt das erbebnis drauf
 
@@ -248,6 +256,8 @@ fn main(){
 ]
 ]
 
+Aus diesem Beispielprogramm wird folgendes WAT generiert, das die gleiche Logik in WebAssembly-Textformat darstellt. Es definiert die Funktion `add`, die zwei `i64`-Parameter entgegennimmt und deren Summe zurückgibt, sowie die `main`-Funktion, die `add(7, 5)` aufruft und das Ergebnis mit der importierten Funktion `print_i64` ausgibt.
+
 #figure(kind: "code", caption: [Generiertes WAT zum Additionsbeispiel (aus `add.eres`)])[
   #code-box[
 ```rust
@@ -280,8 +290,6 @@ fn main(){
 ]
 ]
 
-
-#pagebreak()
 
 = Selbstversuch
 // - Ziel: Umsetzbarkeit der Theorie im eigenen Mini-Compiler prüfen
@@ -336,7 +344,7 @@ pub struct FunctionDecl { // Hält Signatur und Funktionskörper zusammen
 // - Fehlerbehandlung: unerwartete Zeichen, ungültige Zahlen.
 
 Der Lexer liest den Quelltext Zeichen für Zeichen und gruppiert sie in sinnvolle Einheiten, sogenannte Tokens. Er erkennt Schlüsselwörter wie `fn`, `let`, `if`, `else`, `while` und `return`, die eine spezielle Bedeutung haben. Außerdem identifiziert er Literale (z.B. Ganzzahlen) und Identifier (z.B. Funktions- oder Variablennamen). Operatoren und Trennzeichen werden ebenfalls als eigene Token klassifiziert. Bei der Verarbeitung des Quelltexts muss der Lexer auch Fehler erkennen, z.B. wenn ein unerwartetes Zeichen auftaucht oder eine Zahl ungültig formatiert ist @crafting-scanning; @rustc-parser.
-Die Verschiedenen Token-Typen werden in einem Enum `TokenKind` modelliert, das die verschiedenen Kategorien von Tokens abdeckt, einschließlich Schlüsselwörtern, Literalen, Operatoren und Fehlern.
+Die verschiedenen Token-Typen werden in einem Enum `TokenKind` modelliert, das die verschiedenen Kategorien von Tokens abdeckt, einschließlich Schlüsselwörtern, Literalen, Operatoren und Fehlern.
 
 #figure(kind: "code", caption: [Token-Typen (Quelle: src/token.rs)])[
   #code-box[
@@ -490,7 +498,7 @@ fn keyword_or_ident(text: String) -> TokenKind {
 // ]
 // ]
 
-#pagebreak()
+
 
 == Parser
 // - Aufbau eines AST aus Tokens.
@@ -498,222 +506,184 @@ fn keyword_or_ident(text: String) -> TokenKind {
 // - Funktionen: `fn name(params) -> Int { ... }`.
 // - Block: Sequenz von Statements in `{ ... }`.
 // - Ausdrucksparser mit Präzedenzregeln für Operatoren.
-
-Der Parser nimmt die vom Lexer erzeugte Tokenliste und baut daraus einen abstrakten Syntaxbaum (AST, Abstract Syntax Tree) auf, der die hierarchische Struktur des Programms widerspiegelt. Die hier verwendete Strategie nennt sich rekursiver Abstieg, wobei durch Rekursion die hierarchische Natur der Sprache direkt in der Parserlogik abgebildet wird. @crafting-parsing-expr So können beispielsweise Blöcke, die aus einer Sequenz von Statements bestehen, einfach durch eine Funktion `parse_block` umgesetzt werden, die so lange Statements parst, bis sie das schließende `}` findet. 
-
+// 
 
 
+Der Parser nimmt die vom Lexer erzeugte Tokenliste und baut daraus einen abstrakten Syntaxbaum (AST, Abstract Syntax Tree) auf, der die hierarchische Struktur des Programms widerspiegelt. Die in diesem Selbstversuch verwendete Strategie nennt sich rekursiver Abstieg, wobei durch Rekursion die hierarchische Natur der Sprache direkt in der Parserlogik abgebildet wird. @crafting-parsing-expr
 
-Der Einstiegspunkt ist die Funktion `parse_program`, die alle Funktionen im Quelltext sammelt, bis sie das End-Token (`EOF`) erreicht. Jede Funktion wird durch `fn name(params) -> Int { ... }` definiert, wobei der Rückgabetyp optional ist. Blöcke werden als Sequenzen von Statements in `{ ... }` dargestellt. Für Ausdrücke wird ein spezieller Parser mit Präzedenzregeln implementiert, um die korrekte Bindung von Operatoren sicherzustellen.
+Unterschieden wird zwischen Statements, die vollständige Anweisungen darstellen (z.B. `let x = 5;` oder `return x;`), und Expressions, die einen Wert liefern (z.B. `x + 2` oder `add(7, 5)`). In einem Statement wie `let y = x + 2;` ist das gesamte Konstrukt ein Statement, während `x + 2` die Expression ist, die den Wert für die Variable `y` liefert. Ebenso ist in `print(add(7, 5));` das gesamte Konstrukt ein Statement, während `add(7, 5)` die Expression ist, deren Ergebnis an die `print`-Funktion übergeben wird.
 
-Zusätzliche Stichpunkte:
-- Der gewählte Ansatz entspricht einem rekursiven Abstieg, bei dem Nichtterminale durch Funktionen umgesetzt werden @crafting-parsing-expr.
-- Operator-Präzedenz wird typischerweise über eine Prioritätstabelle gesteuert, damit z.B. `*` stärker bindet als `+` @crafting-parsing-expr.
-- Der AST trennt konkrete Syntax (Tokens, Klammern) von semantisch relevanter Struktur (Ausdrücke, Statements) @rustc-parser.
-- [MUSS] Operator-Präzedenz: `*` und `/` werden vor `+` und `-` gebunden.
-- [MUSS] Beispiel zur Präzedenz: `1 + 2 * 3` ergibt AST-Form `Add(1, Mul(2, 3))`.
-- [MUSS] Assoziativität: `10 - 3 - 2` wird als `(10 - 3) - 2` geparst (linksassoziativ).
-- [MUSS] Fehlerstrategie: bei unerwartetem Token sofort `Err(...)`, kein Weiterparsen.
-- [MUSS] Ablauf `parse_expr`: zuerst linker Basis-Ausdruck, dann Operatoren in Präzedenz-Reihenfolge anhängen.
-- [NICE] Mini-Beispiel AST-Form: Quelle `a + b * c` -> `Add(Var(a), Mul(Var(b), Var(c)))`.
-- [NICE] Scope-Verhalten bei Blöcken benennen: Variablenzuordnung über lokale Indizes statt echter Symboltabellen-Hierarchie.
-- [NICE] Optional 1 Tabelle mit Operatoren + Priorität + Assoziativität.
-- [STREICHEN] sehr detaillierte Randfälle (z.B. alle nicht unterstützten Syntaxformen) nur kurz nennen statt breit ausführen.
+=== Rekursiver Abstieg
 
-Umsetzung der [MUSS]-Punkte (stichpunktartig):
-- Präzedenz wird als Zahl modelliert (`*` > `+`).
-- Die `while`-Schleife in `parse_expr` hängt so lange Operatoren an, wie deren Präzedenz hoch genug ist.
-- Linksassoziativität entsteht durch `parse_expr(prec + 1)` auf der rechten Seite.
-- Fehler entstehen zentral über `expect(...)` und werden als `Result::Err` weitergegeben.
+So können beispielsweise Blöcke, die aus einer Sequenz von Statements bestehen, einfach durch eine Funktion `parse_block` umgesetzt werden, die so lange Statements parst, bis sie das schließende `}` findet. 
+Der Einstiegspunkt ist die Funktion `parse_program`, die alle Funktionen im Quelltext sammelt, bis sie das End-Token (`EOF`) erreicht. Jede Funktion wird durch `fn name(params) -> Int { ... }` definiert, wobei der Rückgabetyp optional ist. Blöcke werden als Sequenzen von Statements in `{ ... }` dargestellt.
+
+//  Für Ausdrücke wird ein spezieller Parser mit Präzedenzregeln implementiert, um die korrekte Bindung von Operatoren sicherzustellen.
+
+#figure(kind: "code", caption: [Parser-Einstieg (`parse_program`) (vereinfacht, Quelle: src/parser.rs)])[
+  #code-box[
+```rust
+fn parse_program(&mut self) -> Result<Program, ParseError> {
+    let mut functions = Vec::new(); // Funktionsliste.
+
+    while self.peek().kind != TokenKind::EOF { // Bis Dateiende.
+        let func = self.parse_function()?; // Eine Funktion parsen.
+        functions.push(func); // Hinzufügen.
+    }
+
+    Ok(Program { functions }) // AST zurück.
+}
+```
+]
+]
+
+#figure(kind: "code", caption: [Block-Parser (`parse_block`) (vereinfacht, Quelle: src/parser.rs)])[
+  #code-box[
+```rust
+fn parse_block(&mut self) -> Result<Vec<Stmt>, ParseError> {
+    self.expect(TokenKind::LBrace)?; // `{` erwartet.
+    let mut statements = Vec::new(); // Statements sammeln.
+
+    while self.peek().kind != TokenKind::RBrace { // Bis `}`.
+        let stmt = self.parse_stmt()?; // Statement parsen.
+        statements.push(stmt); // Speichern.
+    }
+
+    self.expect(TokenKind::RBrace)?; // `}` erwartet.
+    Ok(statements) // Block zurück.
+}
+```
+]
+]
+
+=== Operator-Präzedenz 
+
+Um die korrekte Bindung von Operatoren zu gewährleisten, wird ein Präzedenzsystem implementiert. Dabei wird jedem Operator eine Präzedenzstufe zugeordnet, die bestimmt, in welcher Reihenfolge die Operatoren ausgewertet werden. Zum Beispiel bindet `*` stärker als `+`, sodass `1 + 2 * 3` als `1 + (2 * 3)` interpretiert wird. Dies wird durch eine Prioritätstabelle gesteuert, die die Präzedenz der Operatoren definiert. @crafting-parsing-expr
+
+// Zusätzliche Stichpunkte:
+// - Der gewählte Ansatz entspricht einem rekursiven Abstieg, bei dem Nichtterminale durch Funktionen umgesetzt werden @crafting-parsing-expr.
+// - Operator-Präzedenz wird typischerweise über eine Prioritätstabelle gesteuert, damit z.B. `*` stärker bindet als `+` @crafting-parsing-expr.
+// - Der AST trennt konkrete Syntax (Tokens, Klammern) von semantisch relevanter Struktur (Ausdrücke, Statements) @rustc-parser.
+// - [MUSS] Operator-Präzedenz: `*` und `/` werden vor `+` und `-` gebunden.
+// - [MUSS] Beispiel zur Präzedenz: `1 + 2 * 3` ergibt AST-Form `Add(1, Mul(2, 3))`.
+// - [MUSS] Assoziativität: `10 - 3 - 2` wird als `(10 - 3) - 2` geparst (linksassoziativ).
+// - [MUSS] Fehlerstrategie: bei unerwartetem Token sofort `Err(...)`, kein Weiterparsen.
+// - [MUSS] Präzedenz wird über eine klare Prioritätstabelle gesteuert.
+// - [NICE] Mini-Beispiel AST-Form: Quelle `a + b * c` -> `Add(Var(a), Mul(Var(b), Var(c)))`.
+// - [NICE] Scope-Verhalten bei Blöcken benennen: Variablenzuordnung über lokale Indizes statt echter Symboltabellen-Hierarchie.
+// - [NICE] Optional 1 Tabelle mit Operatoren + Priorität + Assoziativität.
+// - [STREICHEN] sehr detaillierte Randfälle (z.B. alle nicht unterstützten Syntaxformen) nur kurz nennen statt breit ausführen.
+
+// Umsetzung der [MUSS]-Punkte (stichpunktartig):
+// - Präzedenz wird als Zahl modelliert (`*` > `+`).
+// - Die Präzedenzwerte sind direkt am Operator ablesbar (z.B. `*` vor `+`).
+// - Der Parser orientiert sich bei der Bindung strikt an dieser Tabelle.
+// - Fehler entstehen zentral über `expect(...)` und werden als `Result::Err` weitergegeben.
+
+
 
 #figure(kind: "code", caption: [Operator-Präzedenz (vereinfacht, Quelle: src/parser.rs)])[
   #code-box[
 ```rust
 fn precedence(kind: &TokenKind) -> Option<u8> {
     match kind {
-        TokenKind::Star | TokenKind::Slash => Some(20),
-        TokenKind::Plus | TokenKind::Minus => Some(10),
-        _ => None,
-    }
-}
-
-fn parse_expr(&mut self, min_prec: u8) -> Result<Expr, ParseError> {
-    let mut left = self.parse_primary()?;
-
-    while let Some(op_prec) = precedence(&self.peek().kind) {
-        if op_prec < min_prec {
-            break;
-        }
-
-        let op = self.bump().kind.clone();
-        let right = self.parse_expr(op_prec + 1)?; // linksassoziativ
-        left = Expr::Binary(Box::new(left), op, Box::new(right));
-    }
-
-    Ok(left)
-}
-```
-]
-]
-
-#figure(kind: "code", caption: [Statement-Dispatch (vereinfacht, Quelle: src/parser.rs)])[
-  #code-box[
-```rust
-fn parse_stmt(&mut self) -> Result<Stmt, ParseError> {
-    match self.peek().kind {
-        TokenKind::Let => self.parse_let(),
-        TokenKind::Return => self.parse_return(),
-        TokenKind::If => self.parse_if(),
-        TokenKind::While => self.parse_while(),
-        _ => self.parse_expr_stmt(),
+        TokenKind::Star | TokenKind::Slash => Some(20), // Hoch.
+        TokenKind::Plus | TokenKind::Minus => Some(10), // Niedrig.
+        _ => None, // Kein Operator.
     }
 }
 ```
 ]
 ]
 
-#figure(kind: "code", caption: [Fehlerstrategie mit `expect` (vereinfacht, Quelle: src/parser.rs)])[
-  #code-box[
-```rust
-fn expect(&mut self, expected: TokenKind) -> Result<(), ParseError> {
-    let found = self.bump().kind.clone();
-    if found == expected {
-        Ok(())
-    } else {
-        Err(ParseError::new(expected, found))
-    }
-}
-```
-]
-]
+Wenn der Parser ein erwartetes Token nicht findet, bricht er sofort mit einem Fehler (`Err`) ab und meldet, was erwartet wurde und was tatsächlich gefunden wurde.
 
 
-#figure(kind: "diagram", caption: [Zustandsmodell der Statement-Parserlogik])[
-  #diagram-box[
-  #set text(size: 8.5pt)
-  #diagram(
-  node-stroke: 0.7pt,
-  spacing: 1.5em,
-  node((-3.5,4), [Stmt\ Start], corner-radius: 2pt),
-  node((-1.5,4), [Token?], corner-radius: 2pt),
-  edge((-3.5,4), (-1.5,4), "->"),
 
-  node((0,0), [`let`], corner-radius: 2pt),
-  edge((-1.5,4), (0,0), "-|>"),
-  node((2,0), [parse_let], corner-radius: 2pt),
-  edge((0,0), (2,0), "->"),
-  node((4,0), [Ende], corner-radius: 2pt),
-  edge((2,0), (4,0), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  node((0,2), [`return`], corner-radius: 2pt),
-  edge((-1.5,4), (0,2), "-|>"),
-  node((2,2), [parse_return], corner-radius: 2pt),
-  edge((0,2), (2,2), "->"),
-  node((4,2), [Ende], corner-radius: 2pt),
-  edge((2,2), (4,2), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
+// #figure(kind: "diagram", caption: [Zustandsmodell der Statement-Parserlogik])[
+//   #diagram-box[
+//   #set text(size: 8.5pt)
+//   #diagram(
+//   node-stroke: 0.7pt,
+//   spacing: 1.5em,
+//   node((-3.5,4), [Stmt\ Start], corner-radius: 2pt),
+//   node((-1.5,4), [Token?], corner-radius: 2pt),
+//   edge((-3.5,4), (-1.5,4), "->"),
 
-  node((0,4), [`if`], corner-radius: 2pt),
-  edge((-1.5,4), (0,4), "->"),
-  node((2,4), [parse_if], corner-radius: 2pt),
-  edge((0,4), (2,4), "->"),
-  node((4,4), [Ende], corner-radius: 2pt),
-  edge((2,4), (4,4), "->", [`else` optional], label-pos: 55%, label-side: left, label-sep: 2pt),
+//   node((0,0), [`let`], corner-radius: 2pt),
+//   edge((-1.5,4), (0,0), "-|>"),
+//   node((2,0), [parse_let], corner-radius: 2pt),
+//   edge((0,0), (2,0), "->"),
+//   node((4,0), [Ende], corner-radius: 2pt),
+//   edge((2,0), (4,0), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  node((0,6), [`while`], corner-radius: 2pt),
-  edge((-1.5,4), (0,6), "-|>"),
-  node((2,6), [parse_while], corner-radius: 2pt),
-  edge((0,6), (2,6), "->"),
-  node((4,6), [Ende], corner-radius: 2pt),
-  edge((2,6), (4,6), "->", [Block], label-pos: 55%, label-side: left, label-sep: 2pt),
+//   node((0,2), [`return`], corner-radius: 2pt),
+//   edge((-1.5,4), (0,2), "-|>"),
+//   node((2,2), [parse_return], corner-radius: 2pt),
+//   edge((0,2), (2,2), "->"),
+//   node((4,2), [Ende], corner-radius: 2pt),
+//   edge((2,2), (4,2), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-  node((0,8), [sonst], corner-radius: 2pt),
-  edge((-1.5,4), (0,8), "-|>"),
-  node((2,8), [parse_expr_stmt], corner-radius: 2pt),
-  edge((0,8), (2,8), "->"),
-  node((4,8), [Ende], corner-radius: 2pt),
-  edge((2,8), (4,8), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
-)
-]
-]
+//   node((0,4), [`if`], corner-radius: 2pt),
+//   edge((-1.5,4), (0,4), "->"),
+//   node((2,4), [parse_if], corner-radius: 2pt),
+//   edge((0,4), (2,4), "->"),
+//   node((4,4), [Ende], corner-radius: 2pt),
+//   edge((2,4), (4,4), "->", [`else` optional], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-Hinweis: `parse_expr` arbeitet rekursiv (z.B. Klammern, Binäroperatoren).
+//   node((0,6), [`while`], corner-radius: 2pt),
+//   edge((-1.5,4), (0,6), "-|>"),
+//   node((2,6), [parse_while], corner-radius: 2pt),
+//   edge((0,6), (2,6), "->"),
+//   node((4,6), [Ende], corner-radius: 2pt),
+//   edge((2,6), (4,6), "->", [Block], label-pos: 55%, label-side: left, label-sep: 2pt),
 
-#figure(kind: "code", caption: [Parser-Einstieg (`parse_program`) (Quelle: src/parser.rs)])[
-  #code-box[
-```rust
-pub fn parse_program(&mut self) -> Result<Program, ParseError> {
-    let mut functions = Vec::new();
+//   node((0,8), [sonst], corner-radius: 2pt),
+//   edge((-1.5,4), (0,8), "-|>"),
+//   node((2,8), [parse_expr_stmt], corner-radius: 2pt),
+//   edge((0,8), (2,8), "->"),
+//   node((4,8), [Ende], corner-radius: 2pt),
+//   edge((2,8), (4,8), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
+// )
+// ]
+// ]
 
-    while self.peek().kind != TokenKind::EOF {
-        let func = self.parse_function()?;
-        functions.push(func);
-    }
-    Ok(Program { functions })
-}
-```
-]
-]
+// Hinweis: `parse_expr` arbeitet rekursiv (z.B. Klammern, Binäroperatoren).
 
-Erläuterung:
-- Der Parser sammelt alle Funktionen bis zum End-Token.
-- Ergebnis ist ein `Program` als Einstiegsknoten des AST.
-
-#figure(kind: "code", caption: [Funktionsparser Teil 1 (Quelle: src/parser.rs)])[
+#figure(kind: "code", caption: [Funktionsparser (Quelle: src/parser.rs)])[
   #code-box[
 ```rust
 fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
-    self.expect(TokenKind::Fn)?;
-    let name = self.expect_ident()?;
-    self.expect(TokenKind::LParen)?;
-```
-]
-]
+    self.expect(TokenKind::Fn)?; // `fn`.
+    let name = self.expect_ident()?; // Name.
 
-Erläuterung:
-- Erwartet `fn`, danach den Namen und die Parameterliste.
-- Rückgabetyp ist optional und wird nur bei `-> Int` gesetzt.
-- Der Funktionskörper ist ein Block mit Statements.
+    self.expect(TokenKind::LParen)?; // `(`.
+    let params = self.parse_params()?; // Parameter.
+    self.expect(TokenKind::RParen)?; // `)`.
 
-// Optional streichen (reiner Layout-Text):
-// Fortsetzung: Parameterliste
-
-#figure(kind: "code", caption: [Funktionsparser Teil 2 (Quelle: src/parser.rs)])[
-  #code-box[
-```rust
-    let params = self.parse_params()?;
-    self.expect(TokenKind::RParen)?;
-```
-]
-]
-
-// Optional streichen (reiner Layout-Text):
-// Fortsetzung: Rückgabetyp und Funktionskörper
-
-#figure(kind: "code", caption: [Funktionsparser Teil 3 (Quelle: src/parser.rs)])[
-  #code-box[
-```rust
     let return_type = if self.peek().kind == TokenKind::Arrow {
-        self.bump();
-        self.expect(TokenKind::IntType)?;
-        Some(Type::Int)
+        self.bump(); // `->`.
+        self.expect(TokenKind::IntType)?; // Typ.
+        Some(Type::Int) // Mit Rückgabetyp.
     } else {
-        None
+        None // Ohne Rückgabetyp.
     };
 
-    let body = self.parse_block()?;
+    let body = self.parse_block()?; // Funktionsblock.
 
     Ok(FunctionDecl {
-        name,
-        params,
-        body,
-        return_type,
+        name, // Name
+        params, // Parameter
+        body, // Statements
+        return_type, // Rückgabetyp
     })
 }
 ```
 ]
 ]
 
-#pagebreak()
+
 
 == Codegen
 // - Ziel: WASM-Bytecode erzeugen.
@@ -723,25 +693,8 @@ Erläuterung:
 // - Host-Funktion `print` als Import (`env.print_i64`).
 
 Der Codegenerator nimmt den AST und übersetzt ihn in eine eigene Zwischenrepräsentation (IR, Intermediate Representation), die aus einer linearen Folge von Instruktionen besteht. Diese IR abstrahiert von den Details der WASM-Generierung und ermöglicht eine klarere Trennung zwischen der Logik der Codeerzeugung und den spezifischen Anforderungen des WASM-Formats. Zusätzlich erleichtert die IR spätere Optimierungen, da Transformationen nicht mehr direkt auf der Quellsyntax arbeiten müssen. Der Einsatz einer IR entspricht der Praxis großer Compiler-Infrastrukturen, wie z.B. LLVM IR als zentrale Zwischenschicht @llvm-langref.
-
-Die IR wird letztendlich in echte WASM-Bytecode-Instruktionen umgewandelt, wobei die `wasm_encoder`-Bibliothek verwendet wird, um Module, Funktionen, Imports und Exports zu definieren. 
-
-Die Host-Funktion `print` wird als Import unter dem Namen `env.print_i64` bereitgestellt, damit sie im generierten WASM-Modul aufgerufen werden kann und die Ausgabe von Ganzzahlen über die Konsole ermöglicht.
-
-
-
-// Zusätzliche Stichpunkte:
-// - Eine IR erleichtert spätere Optimierungen, weil Transformationen nicht mehr direkt auf Quellsyntax arbeiten.
-// - Der Einsatz einer IR entspricht der Praxis großer Compiler-Infrastrukturen (z.B. LLVM IR als zentrale Zwischenschicht) @llvm-langref.
-// - Die Abbildung von Kontrollfluss (`if`, `while`) auf explizite Instruktionsfolgen ist ein zentraler Schritt vom AST zum Zielcode.
-// - [MUSS] Mapping `if/else` in WASM herausstellen: Bedingung auf Stack -> `if` -> optional `else` -> `end`.
-// - [MUSS] Mapping `while` in WASM herausstellen: `block` + `loop`, invertierte Bedingung mit `br_if`, Rücksprung mit `br 0`.
-// - [MUSS] Return-Verhalten dokumentieren: explizites `return` im AST + Fallback-Return im generierten Code.
-// - [NICE] Kurze Tabelle `AST-Konstrukt -> IR -> WASM` (je 1 Mini-Beispiel für Addition, Vergleich, `if/else`, `while`).
-// - [NICE] Offener Punkt: Dead Code nach `return` wird noch emittiert (keine DCE/CFG-Bereinigung).
-// - [STREICHEN] zu viele WASM-Details ohne direkten Bezug zu deinem eigenen Codepfad.
-
 In diesem Fall ist die IR eine einfache Aufzählung von Instruktionen, die direkt auf den WASM-Stack operieren. Zum Beispiel wird ein `if`-Statement in der IR durch eine Sequenz von Instruktionen dargestellt, die die Bedingung evaluieren, dann eine `If`-Instruktion mit einem Blocktyp für den `then`-Teil und optional eine `Else`-Instruktion für den `else`-Teil enthält. Ähnlich wird eine `while`-Schleife durch einen `Block` und einen `Loop` mit entsprechenden Sprunginstruktionen (`BrIf`, `Br`) modelliert.
+
 
 #figure(kind: "code", caption: [IR-Instruktionen (Quelle: src/codegen/ir.rs)])[
   #code-box[
@@ -777,55 +730,79 @@ pub enum IrInstruction{
 ]
 ]
 
-// Erläuterung:
-// - `I64Const` entspricht dem Laden einer Konstante im WASM-Stack.
-// - `LocalGet/LocalSet` stehen für Variablenzugriffe.
-// - `I64Add` und `I64Eq` sind direkte WASM-Arithmetik/Vergleiche.
-// - Kontrollfluss wird über `If/Else/Block/Loop/End` abgebildet.
+Die IR wird letztendlich in echte WASM-Bytecode-Instruktionen umgewandelt, wobei die `wasm_encoder`-Bibliothek verwendet wird, um Module, Funktionen, Imports und Exports zu definieren. 
 
 #figure(kind: "code", caption: [Funktions-Emission (Quelle: src/codegen/module.rs)])[
   #code-box[
 ```rust
 pub fn emit_function(&mut self, func: &FunctionDecl) {
     let mut gen = FuncGen {
-        locals: Vec::new(),
-        local_map: HashMap::new(),
-        instructions: Vec::new(),
-        has_return: func.return_type.is_some(),
+        locals: Vec::new(), // Lokale Variablen (inkl. Parameter)
+        local_map: HashMap::new(), // Mapping von Namen zu lokalen Indizes
+        instructions: Vec::new(), // IR-Instruktionen
+        has_return: func.return_type.is_some(), // Rückgabetyp vorhanden?
     };
 
     // Parameter werden auf lokale Indizes gemappt
     for (i, name) in func.params.iter().enumerate() {
-        gen.local_map.insert(name.clone(), i as u32);
+        gen.local_map.insert(name.clone(), i as u32); 
     }
 
     // Statements -> IR-Instruktionen
     for stmt in &func.body {
-        emit_stmt(stmt, &mut gen, &self.func_indices);
+        emit_stmt(stmt, &mut gen, &self.func_indices); 
     }
 }
 ```
 ]
 ]
 
-Erläuterung:
-- Parameter werden zu lokalen Indizes abgebildet.
-- Statements erzeugen eine lineare Folge von IR-Instruktionen.
-- Danach folgt die Umwandlung der IR-Instruktionen in echtes WASM.
+Die Host-Funktion `print` wird als Import unter dem Namen `env.print_i64` bereitgestellt, damit sie im generierten WASM-Modul aufgerufen werden kann und die Ausgabe von Ganzzahlen über die Konsole ermöglicht.
 
-#pagebreak()
+
+
+// Zusätzliche Stichpunkte:
+// - Eine IR erleichtert spätere Optimierungen, weil Transformationen nicht mehr direkt auf Quellsyntax arbeiten.
+// - Der Einsatz einer IR entspricht der Praxis großer Compiler-Infrastrukturen (z.B. LLVM IR als zentrale Zwischenschicht) @llvm-langref.
+// - Die Abbildung von Kontrollfluss (`if`, `while`) auf explizite Instruktionsfolgen ist ein zentraler Schritt vom AST zum Zielcode.
+// - [MUSS] Mapping `if/else` in WASM herausstellen: Bedingung auf Stack -> `if` -> optional `else` -> `end`.
+// - [MUSS] Mapping `while` in WASM herausstellen: `block` + `loop`, invertierte Bedingung mit `br_if`, Rücksprung mit `br 0`.
+// - [MUSS] Return-Verhalten dokumentieren: explizites `return` im AST + Fallback-Return im generierten Code.
+// - [NICE] Kurze Tabelle `AST-Konstrukt -> IR -> WASM` (je 1 Mini-Beispiel für Addition, Vergleich, `if/else`, `while`).
+// - [NICE] Offener Punkt: Dead Code nach `return` wird noch emittiert (keine DCE/CFG-Bereinigung).
+// - [STREICHEN] zu viele WASM-Details ohne direkten Bezug zu deinem eigenen Codepfad.
+
+
+
+
+// Erläuterung:
+// - `I64Const` entspricht dem Laden einer Konstante im WASM-Stack.
+// - `LocalGet/LocalSet` stehen für Variablenzugriffe.
+// - `I64Add` und `I64Eq` sind direkte WASM-Arithmetik/Vergleiche.
+// - Kontrollfluss wird über `If/Else/Block/Loop/End` abgebildet.
+
+
+
+// Erläuterung:
+// - Parameter werden zu lokalen Indizes abgebildet.
+// - Statements erzeugen eine lineare Folge von IR-Instruktionen.
+// - Danach folgt die Umwandlung der IR-Instruktionen in echtes WASM.
+
+
 
 == Ausführung und Beispiel
-- WASM wird lokal ausgeführt, nicht im Browser.
-- Runtime: `wasmtime` (lädt Bytecode, instanziert Modul, ruft `main` auf).
-- Host-Import `print_i64` wird in Rust bereitgestellt, damit `print(...)` funktioniert.
-- Ablauf: Quelltext → Tokens → AST → WASM‑Bytes → Wasmtime ausführen.
-- `Engine`, `Module`, `Store` und `Instance` sind die zentralen Bausteine der Wasmtime-Ausführung @wasmtime-crate-docs.
-- Imports müssen beim Instanziieren bereitgestellt werden, sonst schlägt das Laden des Moduls fehl @wasmtime-hello-world.
-- [MUSS] Konvention des Projekts explizit machen: Einstieg über exportierte `main`.
-- [MUSS] Validierung erwähnen: ungültiges WASM fällt beim Laden/Instanziieren auf.
-- [NICE] Grenzen der Laufzeit klar benennen (keine Dateisystem-/Netzwerkzugriffe ohne Imports; nur freigegebene Host-Funktionen).
-- [NICE] Messpunkt ergänzen: Compile-Zeit vs. Laufzeitzeit für 1-2 Testprogramme.
+Für diesen Selbstversuch wird der generierte WASM-Bytecode lokal mit der `wasmtime`-Laufzeit ausgeführt, anstatt ihn in einem Browser zu verwenden, auch wenn dies theoretisch möglich wäre. `wasmtime` ermöglicht das Laden von WASM-Modulen, die Instanziierung von Funktionen und den Aufruf von exportierten Funktionen wie `main`. Die Host-Funktion `print_i64` wird in Rust bereitgestellt und als Import in das WASM-Modul eingebunden, damit die `print(...)`-Funktion im generierten Code funktioniert. Der Ablauf umfasst die Umwandlung des Quelltexts in Tokens durch den eigenen Lexer, den Aufbau eines AST durch den Parser, die Generierung von WASM-Bytes durch den Codegenerator und schließlich die Ausführung mit Wasmtime @wasmtime-crate-docs.
+
+// - WASM wird lokal ausgeführt, nicht im Browser.
+// - Runtime: `wasmtime` (lädt Bytecode, instanziert Modul, ruft `main` auf).
+// - Host-Import `print_i64` wird in Rust bereitgestellt, damit `print(...)` funktioniert.
+// - Ablauf: Quelltext → Tokens → AST → WASM‑Bytes → Wasmtime ausführen.
+// - `Engine`, `Module`, `Store` und `Instance` sind die zentralen Bausteine der Wasmtime-Ausführung @wasmtime-crate-docs.
+// - Imports müssen beim Instanziieren bereitgestellt werden, sonst schlägt das Laden des Moduls fehl @wasmtime-hello-world.
+// - [MUSS] Konvention des Projekts explizit machen: Einstieg über exportierte `main`.
+// - [MUSS] Validierung erwähnen: ungültiges WASM fällt beim Laden/Instanziieren auf.
+// - [NICE] Grenzen der Laufzeit klar benennen (keine Dateisystem-/Netzwerkzugriffe ohne Imports; nur freigegebene Host-Funktionen).
+// - [NICE] Messpunkt ergänzen: Compile-Zeit vs. Laufzeitzeit für 1-2 Testprogramme.
 
 #figure(kind: "code", caption: [WASM-Ausführung mit Wasmtime (Quelle: src/runner.rs)])[
   #code-box[
@@ -842,22 +819,25 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
         println!("{}", v);
     });
 
+    // Instanziierung mit Importen (z.B. `env.print_i64`)
     let instance = Instance::new(&mut store, &module, &[print_func.into()])
         .map_err(|e| format!("instance error: {}", e))?;
 
+    // Aufruf der exportierten `main`-Funktion
     let func = instance
         .get_func(&mut store, "main")
         .ok_or_else(|| "function `main` not found".to_string())?;
-    // ...
     func.call(&mut store, &params, &mut results_buf)
         .map_err(|e| format!("runtime error: {}", e))?;
-    // ...
 }
 ```
 ]
 ]
 
-Beispiel (Fakultät):
+Die Ausführung eines Programms in dieser Programmiersprache startet also immer mit der `main`-Funktion, die als Einstiegspunkt dient. Alle anderen Funktionen müssen von `main` oder von anderen Funktionen aufgerufen werden, damit sie ausgeführt werden. Wenn `main` nicht definiert ist oder nicht exportiert wird, schlägt die Instanziierung des WASM-Moduls fehl, da der Einstiegspunkt fehlt.
+
+=== Beispielprogramm: Fakultät
+Hier ein Beispielprogramm, das die Fakultät einer Zahl berechnet. Es zeigt die Verwendung von Funktionen, Rekursion und die Ausgabe über die `print`-Funktion. Das Programm definiert eine Funktion `fact`, die die Fakultät berechnet, und eine `main`-Funktion, die `fact(10)` aufruft und das Ergebnis ausgibt.
 
 #figure(kind: "code", caption: [Programmbeispiel: Fakultät (Quelle: factorial.eres)])[
   #code-box[
@@ -878,6 +858,8 @@ fn main(){
 ]
 ]
 
+Wenn man dieses Programm mit `cargo run -- factorial.eres` ausführt, wird die Ausgabe `3628800` (die Fakultät von 10) in der Konsole angezeigt, was die korrekte Funktion des Compilers und der Laufzeit bestätigt.
+
 == Eigener Beitrag und verwendete Tools
 // - Eigenleistung: Sprachsyntax festgelegt (`fn`, `let`, `if/else`, `while`, `return`)
 // - Eigenleistung: Lexer, Parser, Codegen, Runtime-Anbindung umgesetzt
@@ -889,7 +871,7 @@ fn main(){
 // - Unterstützung: KI für Strukturierung/Brainstorming
 
 Die Eigenleistung umfasst die vollständige Implementierung eines Mini-Compilers von der Quelltextanalyse (Lexer, Parser) über die Codegenerierung bis zur Ausführung des generierten WASM-Codes. Die Sprachsyntax wurde von mir definiert, und alle Komponenten des Compilers wurden eigenständig entwickelt. Zusätzlich habe ich Testfälle erstellt, um die Funktionalität von Lexer, Parser und der Laufzeit zu validieren.
-Die verwendeten Tools umfassen die Programmiersprache Rust für die Implementierung, die `wasm-encoder`-Bibliothek für die Generierung von WASM-Bytecode, die`wasmtime`-Laufzeit für die Ausführung des generierten Codes und Typst für die Erstellung dieser Facharbeit. KI-Unterstützung wurde für die Strukturierung der Arbeit und das Brainstorming von Ideen genutzt, jedoch nur wenig für die eigentliche Code-Implementierung.
+Die verwendeten Tools umfassen die Programmiersprache Rust für die Implementierung, die `wasm-encoder`-Bibliothek für die Generierung von WASM-Bytecode, die `wasmtime`-Laufzeit für die Ausführung des generierten Codes und Typst für die Erstellung dieser Facharbeit. KI-Unterstützung wurde für die Strukturierung der Arbeit und das Brainstorming von Ideen genutzt, jedoch nur wenig für die eigentliche Code-Implementierung.
 
 
 == Testwerkzeuge und CLI-Nutzung
@@ -981,7 +963,7 @@ Generated WAT:
 // Optional streichen (bereits als Stichpunkte darunter enthalten):
 Um die Leitfrage zu beantworten: WebAssembly erleichtert den Bau eigener Compiler für Amateurentwickler erheblich, da es ein einheitliches Ziel bietet und viele plattformspezifische Details im Backend abstrahiert. Allerdings bleibt die Entwicklung eines Compilers eine komplexe Aufgabe, insbesondere im Frontend (Lexing, Parsing, semantische Analyse). Die Abhängigkeit von Host-Imports und der Sandbox-Umgebung von WASM kann ebenfalls Einschränkungen mit sich bringen. Insgesamt ist WASM eine vielversprechende Plattform für Hobby-Compiler, aber es erfordert dennoch ein gewisses Maß an technischem Verständnis und Aufwand.
 
-Mein Persönliches Fazit ist, dass die Entwicklung dieses Mini-Compilers eine äußerst lehrreiche Erfahrung war. Es hat mir geholfen, die theoretischen Konzepte des Compilerbaus in die Praxis umzusetzen und die Herausforderungen zu verstehen, die mit der Erstellung eines Compilers verbunden sind. Obwohl das Projekt mehr als Proof of Concept denn als produktionsreifer Compiler zu betrachten ist, hat es mir wertvolle Einblicke gegeben und meine Fähigkeiten im Bereich Compilerentwicklung deutlich verbessert.
+Mein persönliches Fazit ist, dass die Entwicklung dieses Mini-Compilers eine äußerst lehrreiche Erfahrung war. Sie hat mir geholfen, die theoretischen Konzepte des Compilerbaus in die Praxis umzusetzen und die Herausforderungen zu verstehen, die mit der Erstellung eines Compilers verbunden sind. Obwohl das Projekt mehr als Proof of Concept denn als produktionsreifer Compiler zu betrachten ist, hat es mir wertvolle Einblicke gegeben und meine Fähigkeiten im Bereich Compilerentwicklung deutlich verbessert.
 
 Die größte Herausforderung lag in der Implementierung der Parserlogik, insbesondere bei der Handhabung von Operatorpräzedenz und der Fehlerbehandlung. Auch die Codegenerierung für WASM war komplex, da ich mich mit den Details der WASM-Instruktionen und der Modulstruktur auseinandersetzen musste. Das Tooling rund um die Entwicklung eines Compilers, einschließlich Testen und Debuggen, stellte ebenfalls eine Herausforderung dar.
 
@@ -1049,7 +1031,7 @@ Anhang-Inhaltsverzeichnis:
   target: heading.where(level: 3),
 )
 
-#pagebreak()
+
 
 #source-file("factorial.eres", lang: "rust")
 #source-file("src/ast.rs", lang: "rust")
