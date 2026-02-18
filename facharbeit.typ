@@ -3,7 +3,7 @@
 #set page(
   paper: "a4",
   margin: (top: 2.5cm, bottom: 2.5cm, left: 3cm, right: 5cm),
-  numbering: "1 von 1",
+  numbering: "1",
   number-align: right + bottom
 )
 
@@ -27,6 +27,9 @@
 
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 #import "vendor/codly/codly.typ": *
+
+#let render-code-blocks = true // auf false setzen, um Codeblöcke auszublenden
+
 
 #show: codly-init.with()
 #codly(
@@ -60,15 +63,15 @@
   #body
 ]
 
-#let source-file(path, lang: "text") = [
-=== #path
-[
-  #set text(size: 9pt)
-  #set text(hyphenate: false)
-  #set par(justify: false)
-  #raw(read(path), block: true, lang: lang)
-]
-]
+#let source-file(path, lang: "text") = if render-code-blocks [
+  === #path
+  #block[
+    #set text(size: 9pt)
+    #set text(hyphenate: false)
+    #set par(justify: false)
+    #raw(read(path), block: true, lang: lang)
+  ]
+] else []
 
 #show figure.where(kind: "diagram"): set figure(
   supplement: [Abbildung],
@@ -96,6 +99,9 @@
   )
   #align(left)[#it]
 ]
+#show figure.where(kind: "code"): it => {
+  if render-code-blocks { it } else { [] }
+}
 #show raw.where(block: false): it => box(
   
   fill: rgb("#f0f0f0"),
@@ -107,10 +113,12 @@
 #set page(margin: 0pt, numbering: none)
 #image("formblaetter.pdf", page: 1, width: 100%, height: 100%)
 #pagebreak()
+#image("formblaetter.pdf", page: 2, width: 100%, height: 100%)
+#pagebreak()
 #set page(
   paper: "a4",
   margin: (top: 2.5cm, bottom: 2.5cm, left: 3cm, right: 5cm),
-  numbering: "1 von 1",
+  numbering: "1",
   number-align: right + bottom
 )
 
@@ -121,7 +129,7 @@
 #pagebreak()
 
 #set page(
-  numbering: "1 von 1",
+  numbering: "1",
   number-align: right + bottom,
 )
 
@@ -129,13 +137,13 @@
 
 = Einleitung
 
-Unterschiedliche Programmiersprachen haben die verschiedensten Funktionen, ihre eigene Syntax oder sind speziell auf einen Anwendungsfall zugeschnitten.
+Unterschiedliche Programmiersprachen unterscheiden sich in Syntax, Funktionsumfang und Einsatzbereich.
 So ist es ein Traum vieler Entwickler, sich eine eigene Programmiersprache zu erschaffen, die perfekt an die eigenen Bedürfnisse angepasst ist.
 
 Trotzdem bleibt die Entwicklung einer eigenen Programmiersprache für viele Entwickler ein fernes Ziel, da sie häufig mit einem hohen technischen Aufwand verbunden ist und viel Erfahrung erfordert.
 Ein wesentlicher Grund dafür liegt im Bau eines sogenannten Compilers. 
 
-Ein Compiler ist ein Programm, welches Quellcode in eine für den Computer ausführbare Form übersetzt. Der komplexeste Teil ist dabei das Backend, welches für die Erzeugung von plattformspezifischem Maschinencode verantwortlich ist. Unterschiedliche Prozessorarchitekturen und Betriebssysteme erfordern jeweils eigene 
+Ein Compiler ist ein Programm, das Quellcode in eine für den Computer ausführbare Form übersetzt. Der komplexeste Teil ist dabei das Backend, das für die Erzeugung von plattformspezifischem Maschinencode verantwortlich ist. Unterschiedliche Prozessorarchitekturen und Betriebssysteme erfordern jeweils eigene 
 Lösungen, was den Entwicklungsaufwand stark erhöht. 
 Aus diesem Grund werden Compiler in der Regel von größeren Entwicklerteams oder 
 Unternehmen realisiert und nur selten von einzelnen Amateurentwicklern.
@@ -163,7 +171,7 @@ generiert.
 Auf Basis dieser Erfahrungen werden die Chancen und Grenzen von WebAssembly 
 als Zielplattform für Hobby-Compiler bewertet.
 
-Die Ergebnisse zeigen, dass WebAssembly in vielerlei Hinsicht den Einstieg in den Compilerbau erleichtert. Insbesondere die plattformunabhängige Natur von WASM und die Abstraktion von Hardwaredetails ermöglichen es Entwicklern, sich auf die Implementierung der Sprache und der Compiler-Logik zu konzentrieren, ohne sich um die spezifischen Anforderungen verschiedener Zielarchitekturen kümmern zu müssen.
+Im weiteren Verlauf wird untersucht, inwiefern WebAssembly den Einstieg in den Compilerbau erleichtert. Im Fokus stehen dabei die plattformunabhängige Ausführung und die Abstraktion von Hardwaredetails, durch die sich die Implementierung stärker auf Sprach- und Compilerlogik konzentrieren kann.
 
 
 = Vorwissen: Compiler und WebAssembly
@@ -181,12 +189,6 @@ Dieses Kapitel führt in die Grundkonzepte des Compilerbaus ein und erläutert d
 
 Ein Compiler ist ein Programm, welches Programmcode in eine andere, für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können. Zusätzlich erleichtern moderne Compiler den Entwicklern das Leben, indem sie häufige Fehler schon beim Übersetzen des Quellcodes finden und verständliche Fehlermeldungen ausgeben, während Interpreter Fehler erst zur Laufzeit sichtbar werden, was die Fehlersuche erschwert @ibm-compiler. Wenn der Begriff "Compiler" fällt, ist selten nur der reine Übersetzungsvorgang gemeint, sondern oft die gesamte Toolchain, die auch Assembler und Linker umfasst, um aus Quellcode eine ausführbare Datei zu erzeugen @gcc-overall-options.
 
-// Zusätzliche Stichpunkte:
-// - Der Übersetzungsvorgang wird in der Praxis oft als Teil einer Toolchain betrachtet (inkl. Assembler und Linker) @gcc-overall-options.
-// - Für Entwickler ist wichtig: Compiler-Fehler sind Diagnoseausgaben zur Übersetzungszeit und treten vor der Programmausführung auf @gcc-overall-options.
-
-
-
 == Aufbau eines Compilers (Frontend, Backend)
 // - Eingabephase: Quellcode wird gelesen und in Tokens zerlegt (Lexing).
 // - Syntaxanalyse: Parser baut einen Syntaxbaum (AST).
@@ -198,13 +200,6 @@ Ein Compiler ist ein Programm, welches Programmcode in eine andere, für Compute
 // - Ausgabe: Binärdatei, Objektdatei oder Bytecode.
 
 Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgegrenzte Aufgaben übernehmen: Lexing (Erzeugung von Token aus Quelltext), Parsing (Aufbau eines abstrakten Syntaxbaums, AST), semantische Analyse (Typprüfung, Namensauflösung, Scope- und Fehlerprüfung), eine Zwischenrepräsentation und Optimierungsphase (IR-Transformationen, konstante Auswertung, Dead-Code-Elimination) sowie das Backend (Code- bzw. Bytecode-Generierung, z.B. für WebAssembly). Diese Modularität erleichtert Entwicklung, Testbarkeit und Wiederverwendbarkeit der einzelnen Komponenten. Zusätzlich bietet diese Struktur die Möglichkeit, verschiedene Frontends (für unterschiedliche Sprachen) mit demselben Backend zu kombinieren, was die Flexibilität erhöht. Moderne Compiler sind genau entlang solcher Schritte aufgebaut @rustc-overview. 
-
-// Zusätzliche Stichpunkte:
-// - Die Trennung in Frontend und Backend erlaubt, mehrere Sprachen auf dasselbe Backend abzubilden.
-// - Zwischenrepräsentationen entkoppeln Sprachsyntax und Zielplattform und erleichtern Optimierungen @rustc-overview.
-// - In realen Toolchains werden Vorverarbeitung, Kompilierung, Assemblierung und Linking als getrennte Schritte modelliert @gcc-overall-options.
-
-// Quellen: @ibm-compiler; @rustc-overview; @rustc-parser
 
 == Einführung in WebAssembly
 // - WebAssembly (WASM): binäres, plattformunabhängiges Ausführungsformat.
@@ -219,27 +214,9 @@ WebAssembly (WASM) ist ein binäres, plattformunabhängiges Ausführungsformat, 
 
 Das Grundprinzip, nach dem WASM arbeitet, ist die Stack-Maschine, bei der Instruktionen primär auf einem Operand-Stack operieren. Zum Beispiel nimmt die `add`-Instruktion die obersten zwei Werte vom Stack, addiert sie und legt das Ergebnis wieder auf den Stack. Dies ermöglicht eine einfache und effiziente Ausführung von Anweisungen, da keine expliziten Register oder Speicheradressen benötigt werden @mdn-wasm-text-format; @wasm-spec.
 
-// - Stack erklären: Stapel teller, add instruktion nimmt die obersten 2 und legt das erbebnis drauf
-
-// Zusätzliche Stichpunkte:
-// - WASM ist als Stack-Maschine definiert: Instruktionen arbeiten primär auf einem Operand-Stack @mdn-wasm-text-format; @wasm-spec.
-// - Module werden vor der Ausführung validiert (z.B. Typkonsistenz von Instruktionen) @wasm-w3c-core.
-// - Textformat (WAT) und Binärformat bilden dieselbe Modulstruktur ab; WAT ist vor allem für Debugging und Lernen nützlich @mdn-wasm-text-format; @wasm-spec.
-
 WebAssembly wird in Modulen verpackt, die Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen enthalten. Ein valides WASM-Modul muss bestimmte Regeln erfüllen, damit es von der Laufzeitumgebung akzeptiert wird. Dazu gehören ein klarer Aufbau des Moduls, die Konsistenz von Funktionssignaturen, die Korrektheit des Kontrollflusses und die Gültigkeit referenzierter Indizes. Der Validator prüft diese Regeln vor der Ausführung, und bei Verstoß wird das Modul nicht instanziiert @wasm-w3c-core; @wasm-spec. 
 
-
-// Stichpunkte: Was ein valides WASM-Modul ausmacht
-// - Das Modul hat einen klaren Aufbau (Typen, Imports, Funktionen, Exports, optional Speicher/Tabellen).
-// - Alle Funktionsaufrufe passen zu den deklarierten Funktionssignaturen (Parameter und Rückgabewerte).
-// - Stack-Typen stimmen bei jeder Instruktion (keine "falschen" Werte auf dem Stack).
-// - Kontrollfluss-Blöcke (`if`, `block`, `loop`) sind korrekt geöffnet und geschlossen (`end`).
-// - Referenzierte Indizes sind gültig (z.B. `call 1` nur, wenn Funktion 1 existiert).
-// - Imports/Exports sind konsistent benannt, damit Host und Modul zusammenpassen.
-// - Der Validator prüft diese Regeln vor der Ausführung; bei Verstoß wird das Modul nicht instanziiert @wasm-w3c-core; @wasm-spec.
-
-
-Hier ein Beispiel von Quellcode in unserer eigenen Sprache, der eine einfache Addition durchführt und das entsprechende WebAssembly Textformat (WAT), das daraus generiert wird. Das Beispiel zeigt, wie eine Funktion `add` definiert wird, die zwei Ganzzahlen addiert, und eine `main`-Funktion, die diese Addition ausführt und das Ergebnis über eine Host-Import-Funktion `print` ausgibt.
+Hier ist ein Beispiel für Quellcode in unserer eigenen Sprache, der eine einfache Addition durchführt, sowie das daraus generierte WebAssembly-Textformat (WAT). Das Beispiel zeigt, wie eine Funktion `add` definiert wird, die zwei Ganzzahlen addiert, und eine `main`-Funktion, die diese Addition ausführt und das Ergebnis über eine Host-Import-Funktion `print` ausgibt.
 
 #figure(kind: "code", caption: [Programmbeispiel: Addition in eigener Sprache (Quelle: add.eres)])[
   #code-box[
@@ -297,6 +274,10 @@ Aus diesem Beispielprogramm wird folgendes WAT generiert, das die gleiche Logik 
 // - Ergebnisartefakte: Tokens, AST, WAT, Laufzeitausgabe
 
 Die Konzepte des Compilerbaus und die Funktionsweise von WebAssembly wurden nun theoretisch erläutert. Um die praktische Umsetzbarkeit dieser Konzepte zu überprüfen, wird im folgenden Abschnitt ein eigener Mini-Compiler entwickelt. Dieser Compiler soll eine eigens definierte, minimalistische Programmiersprache in WebAssembly-Bytecode übersetzen. Dabei wird die gesamte Pipeline von der Quelltexteingabe über die Tokenisierung, das Parsing, die semantische Analyse bis hin zur Codegenerierung und Ausführung durchlaufen. Ziel ist es, nicht nur die technischen Schritte zu demonstrieren, sondern auch konkrete Artefakte wie die erzeugten Tokens, den abstrakten Syntaxbaum (AST), das generierte WAT und die Laufzeitausgabe zu präsentieren und nachvollziehbar zu machen.
+
+== Methodik des Selbstversuchs
+
+Methodisch handelt es sich um eine prototypische Implementierung mit bewusst begrenztem Sprachumfang. Geprüft wird jede Stufe der Übersetzung mit passenden Zwischenergebnissen (Token-Stream, AST und WAT) sowie anschließend die End-to-End-Ausführung über Wasmtime. Die Auswertung erfolgt durch den Vergleich von erwartetem und tatsächlichem Verhalten anhand eigener Testprogramme; der Fokus liegt dabei auf Nachvollziehbarkeit der Pipeline, nicht auf Produktionsreife oder umfassender Optimierung. Um die Reproduzierbarkeit zu sichern, wurden die Testläufe mit festen Eingabedateien und konsistenten CLI-Optionen durchgeführt und die Zwischenausgaben jeweils dokumentiert.
 
 == Funktionsumfang der eigenen Programmiersprache
 // - Minimaler Datentyp: `Int` (Ganzzahl, intern `i64`).
@@ -367,15 +348,7 @@ pub enum TokenKind {
 
 
 
-// Priorisierte Stichpunkte (Lexer):
-// - [MUSS] Klarer Ablauf: Whitespace überspringen -> Zahl/Identifier/Operator erkennen -> Token ausgeben.
-// - [MUSS] Trennlogik erklären: Ein Token endet, sobald ein Zeichen nicht mehr zur aktuellen Klasse passt.
-// - [MUSS] Schlüsselwort vs. Identifier erklären: gleiche Lesephase, Entscheidung erst am Ende.
-// - [MUSS] Fehlerfall erklären: unbekanntes Zeichen erzeugt direkt einen Lexer-Fehler.
-// - [NICE] Typische Mini-Beispiele angeben: `let x=3;` -> `Let, Ident(x), Equal, Int(3), Semicolon`.
-// - [STREICHEN] Vollständige Auflistung jedes einzelnen Tokens im Fließtext.
-
-Beim Hauptlauf des Lexers wird der Quelltext zeichenweise durchlaufen. Zunächst werden alle Whitespace-Zeichen übersprungen, da sie für die Syntax keine Bedeutung haben. Sobald ein nicht-Whitespace-Zeichen gefunden wird, entscheidet der Lexer, ob es sich um den Beginn eines Identifiers, einer Zahl oder eines Operators handelt. Ein Identifier oder Schlüsselwort beginnt mit einem Buchstaben oder Unterstrich, gefolgt von alphanumerischen Zeichen oder Unterstrichen. Eine Zahl besteht ausschließlich aus Ziffern. Operatoren und Trennzeichen werden direkt erkannt. Sobald ein Token vollständig erkannt ist (z.B. wenn ein Nicht-Zeichen mehr zum aktuellen Token passt), wird es ausgegeben. 
+Beim Hauptlauf des Lexers wird der Quelltext zeichenweise durchlaufen. Zunächst werden alle Whitespace-Zeichen übersprungen, da sie für die Syntax keine Bedeutung haben. Sobald ein nicht-Whitespace-Zeichen gefunden wird, entscheidet der Lexer, ob es sich um den Beginn eines Identifiers, einer Zahl oder eines Operators handelt. Ein Identifier oder Schlüsselwort beginnt mit einem Buchstaben oder Unterstrich, gefolgt von alphanumerischen Zeichen oder Unterstrichen. Eine Zahl besteht ausschließlich aus Ziffern. Operatoren und Trennzeichen werden direkt erkannt. Sobald ein Token vollständig erkannt ist (z.B. wenn kein weiteres Zeichen mehr zum aktuellen Token passt), wird es ausgegeben.
 
 
 #figure(kind: "code", caption: [Vereinfachter Lexer-Hauptlauf (Quelle: src/lexer.rs)])[
@@ -410,48 +383,6 @@ fn next_token(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> TokenKind
 ]
 ]
 
-// #figure(kind: "diagram", caption: [Zustandsmodell des Lexers])[
-//   #diagram-box[
-//   #set text(size: 8.5pt)
-//   #diagram(
-//   node-stroke: 0.7pt,
-//   spacing: 1.5em,
-//   node((-3.5,4), [Start], corner-radius: 2pt),
-//   node((-1.5,4), [Zeichen?], corner-radius: 2pt),
-//   edge((-3.5,4), (-1.5,4), "->"),
-
-//   node((0,0), [Buchstabe/\_], corner-radius: 2pt),
-//   edge((-1.5,4), (0,0), "-|>"),
-//   node((2,0), [In\ Ident], corner-radius: 50%),
-//   edge((0,0), (2,0), "->"),
-//   node((4,0), [Emit\ Ident/Keyword], corner-radius: 2pt),
-//   edge((2,0), (4,0), "->", [Ende], label-pos: 55%, label-side: left, label-sep: 2pt),
-
-//   node((0,2), [Ziffer], corner-radius: 2pt),
-//   edge((-1.5,4), (0,2), "-|>"),
-//   node((2,2), [In\ Zahl], corner-radius: 50%),
-//   edge((0,2), (2,2), "->"),
-//   node((4,2), [Emit\ Zahl], corner-radius: 50%),
-//   edge((2,2), (4,2), "->", [Ende], label-pos: 55%, label-side: left, label-sep: 2pt),
-
-//   node((0,4), [Op/Trenner], corner-radius: 2pt),
-//   edge((-1.5,4), (0,4), "->"),
-//   node((2,4), [Emit\ Operator], corner-radius: 2pt),
-//   edge((0,4), (2,4), "->"),
-
-//   node((0,6), [Whitespace], corner-radius: 2pt),
-//   edge((-1.5,4), (0,6), "-|>"),
-//   node((2,6), [Skip], corner-radius: 2pt),
-//   edge((0,6), (2,6), "->"),
-
-//   node((0,8), [Unbekannt], corner-radius: 2pt),
-//   edge((-1.5,4), (0,8), "-|>"),
-//   node((2,8), [Fehler], corner-radius: 2pt),
-//   edge((0,8), (2,8), "->"),
-// )
-// ]
-// ]
-
 Bei der Erkennung von Identifiers wird erst am Ende entschieden, ob es sich um ein Schlüsselwort handelt, indem die gesammelte Zeichenfolge mit bekannten Schlüsselwörtern verglichen wird. Wenn ein unbekanntes Zeichen auftaucht, erzeugt der Lexer sofort einen Fehler-Token, ohne weiter zu parsen.
 
 #figure(kind: "code", caption: [Identifier-Lexing (Quelle: src/lexer.rs)])[
@@ -471,35 +402,6 @@ fn keyword_or_ident(text: String) -> TokenKind {
 ]
 ]
 
-// Erläuterung:
-// - Zeichenfolge wird gesammelt und dann gegen Schlüsselwörter geprüft.
-// - Alles, was kein Schlüsselwort ist, wird als `Ident(...)` behandelt.
-
-// #figure(kind: "code", caption: [Zahlen-Lexing (vereinfacht, Quelle: src/lexer.rs)])[
-//   #code-box[
-// ```rust
-// fn lex_number(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> TokenKind {
-//     let mut text = String::new();
-//     while let Some(&c) = chars.peek() {
-//         if c.is_ascii_digit() {
-//             text.push(c);
-//             chars.next();
-//         } else {
-//             break;
-//         }
-//     }
-
-//     match text.parse::<i64>() {
-//         Ok(value) => TokenKind::Int(value),
-//         Err(_) => TokenKind::Error,
-//     }
-// }
-// ```
-// ]
-// ]
-
-
-
 == Parser
 // - Aufbau eines AST aus Tokens.
 // - Einstieg: `parse_program` sammelt Funktionen bis `EOF`.
@@ -509,7 +411,7 @@ fn keyword_or_ident(text: String) -> TokenKind {
 // 
 
 
-Der Parser nimmt die vom Lexer erzeugte Tokenliste und baut daraus einen abstrakten Syntaxbaum (AST, Abstract Syntax Tree) auf, der die hierarchische Struktur des Programms widerspiegelt. Die in diesem Selbstversuch verwendete Strategie nennt sich rekursiver Abstieg, wobei durch Rekursion die hierarchische Natur der Sprache direkt in der Parserlogik abgebildet wird. @crafting-parsing-expr
+Der Parser nimmt die vom Lexer erzeugte Tokenliste und baut daraus einen abstrakten Syntaxbaum (AST, Abstract Syntax Tree) auf, der die hierarchische Struktur des Programms widerspiegelt. Die in diesem Selbstversuch verwendete Strategie nennt sich rekursiver Abstieg, wobei durch Rekursion die hierarchische Natur der Sprache direkt in der Parserlogik abgebildet wird (@crafting-parsing-expr).
 
 Unterschieden wird zwischen Statements, die vollständige Anweisungen darstellen (z.B. `let x = 5;` oder `return x;`), und Expressions, die einen Wert liefern (z.B. `x + 2` oder `add(7, 5)`). In einem Statement wie `let y = x + 2;` ist das gesamte Konstrukt ein Statement, während `x + 2` die Expression ist, die den Wert für die Variable `y` liefert. Ebenso ist in `print(add(7, 5));` das gesamte Konstrukt ein Statement, während `add(7, 5)` die Expression ist, deren Ergebnis an die `print`-Funktion übergeben wird.
 
@@ -517,8 +419,6 @@ Unterschieden wird zwischen Statements, die vollständige Anweisungen darstellen
 
 So können beispielsweise Blöcke, die aus einer Sequenz von Statements bestehen, einfach durch eine Funktion `parse_block` umgesetzt werden, die so lange Statements parst, bis sie das schließende `}` findet. 
 Der Einstiegspunkt ist die Funktion `parse_program`, die alle Funktionen im Quelltext sammelt, bis sie das End-Token (`EOF`) erreicht. Jede Funktion wird durch `fn name(params) -> Int { ... }` definiert, wobei der Rückgabetyp optional ist. Blöcke werden als Sequenzen von Statements in `{ ... }` dargestellt.
-
-//  Für Ausdrücke wird ein spezieller Parser mit Präzedenzregeln implementiert, um die korrekte Bindung von Operatoren sicherzustellen.
 
 #figure(kind: "code", caption: [Parser-Einstieg (`parse_program`) (vereinfacht, Quelle: src/parser.rs)])[
   #code-box[
@@ -560,28 +460,6 @@ fn parse_block(&mut self) -> Result<Vec<Stmt>, ParseError> {
 
 Um die korrekte Bindung von Operatoren zu gewährleisten, wird ein Präzedenzsystem implementiert. Dabei wird jedem Operator eine Präzedenzstufe zugeordnet, die bestimmt, in welcher Reihenfolge die Operatoren ausgewertet werden. Zum Beispiel bindet `*` stärker als `+`, sodass `1 + 2 * 3` als `1 + (2 * 3)` interpretiert wird. Dies wird durch eine Prioritätstabelle gesteuert, die die Präzedenz der Operatoren definiert. @crafting-parsing-expr
 
-// Zusätzliche Stichpunkte:
-// - Der gewählte Ansatz entspricht einem rekursiven Abstieg, bei dem Nichtterminale durch Funktionen umgesetzt werden @crafting-parsing-expr.
-// - Operator-Präzedenz wird typischerweise über eine Prioritätstabelle gesteuert, damit z.B. `*` stärker bindet als `+` @crafting-parsing-expr.
-// - Der AST trennt konkrete Syntax (Tokens, Klammern) von semantisch relevanter Struktur (Ausdrücke, Statements) @rustc-parser.
-// - [MUSS] Operator-Präzedenz: `*` und `/` werden vor `+` und `-` gebunden.
-// - [MUSS] Beispiel zur Präzedenz: `1 + 2 * 3` ergibt AST-Form `Add(1, Mul(2, 3))`.
-// - [MUSS] Assoziativität: `10 - 3 - 2` wird als `(10 - 3) - 2` geparst (linksassoziativ).
-// - [MUSS] Fehlerstrategie: bei unerwartetem Token sofort `Err(...)`, kein Weiterparsen.
-// - [MUSS] Präzedenz wird über eine klare Prioritätstabelle gesteuert.
-// - [NICE] Mini-Beispiel AST-Form: Quelle `a + b * c` -> `Add(Var(a), Mul(Var(b), Var(c)))`.
-// - [NICE] Scope-Verhalten bei Blöcken benennen: Variablenzuordnung über lokale Indizes statt echter Symboltabellen-Hierarchie.
-// - [NICE] Optional 1 Tabelle mit Operatoren + Priorität + Assoziativität.
-// - [STREICHEN] sehr detaillierte Randfälle (z.B. alle nicht unterstützten Syntaxformen) nur kurz nennen statt breit ausführen.
-
-// Umsetzung der [MUSS]-Punkte (stichpunktartig):
-// - Präzedenz wird als Zahl modelliert (`*` > `+`).
-// - Die Präzedenzwerte sind direkt am Operator ablesbar (z.B. `*` vor `+`).
-// - Der Parser orientiert sich bei der Bindung strikt an dieser Tabelle.
-// - Fehler entstehen zentral über `expect(...)` und werden als `Result::Err` weitergegeben.
-
-
-
 #figure(kind: "code", caption: [Operator-Präzedenz (vereinfacht, Quelle: src/parser.rs)])[
   #code-box[
 ```rust
@@ -597,59 +475,6 @@ fn precedence(kind: &TokenKind) -> Option<u8> {
 ]
 
 Wenn der Parser ein erwartetes Token nicht findet, bricht er sofort mit einem Fehler (`Err`) ab und meldet, was erwartet wurde und was tatsächlich gefunden wurde.
-
-
-
-
-// #figure(kind: "diagram", caption: [Zustandsmodell der Statement-Parserlogik])[
-//   #diagram-box[
-//   #set text(size: 8.5pt)
-//   #diagram(
-//   node-stroke: 0.7pt,
-//   spacing: 1.5em,
-//   node((-3.5,4), [Stmt\ Start], corner-radius: 2pt),
-//   node((-1.5,4), [Token?], corner-radius: 2pt),
-//   edge((-3.5,4), (-1.5,4), "->"),
-
-//   node((0,0), [`let`], corner-radius: 2pt),
-//   edge((-1.5,4), (0,0), "-|>"),
-//   node((2,0), [parse_let], corner-radius: 2pt),
-//   edge((0,0), (2,0), "->"),
-//   node((4,0), [Ende], corner-radius: 2pt),
-//   edge((2,0), (4,0), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
-
-//   node((0,2), [`return`], corner-radius: 2pt),
-//   edge((-1.5,4), (0,2), "-|>"),
-//   node((2,2), [parse_return], corner-radius: 2pt),
-//   edge((0,2), (2,2), "->"),
-//   node((4,2), [Ende], corner-radius: 2pt),
-//   edge((2,2), (4,2), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
-
-//   node((0,4), [`if`], corner-radius: 2pt),
-//   edge((-1.5,4), (0,4), "->"),
-//   node((2,4), [parse_if], corner-radius: 2pt),
-//   edge((0,4), (2,4), "->"),
-//   node((4,4), [Ende], corner-radius: 2pt),
-//   edge((2,4), (4,4), "->", [`else` optional], label-pos: 55%, label-side: left, label-sep: 2pt),
-
-//   node((0,6), [`while`], corner-radius: 2pt),
-//   edge((-1.5,4), (0,6), "-|>"),
-//   node((2,6), [parse_while], corner-radius: 2pt),
-//   edge((0,6), (2,6), "->"),
-//   node((4,6), [Ende], corner-radius: 2pt),
-//   edge((2,6), (4,6), "->", [Block], label-pos: 55%, label-side: left, label-sep: 2pt),
-
-//   node((0,8), [sonst], corner-radius: 2pt),
-//   edge((-1.5,4), (0,8), "-|>"),
-//   node((2,8), [parse_expr_stmt], corner-radius: 2pt),
-//   edge((0,8), (2,8), "->"),
-//   node((4,8), [Ende], corner-radius: 2pt),
-//   edge((2,8), (4,8), "->", [;], label-pos: 55%, label-side: left, label-sep: 2pt),
-// )
-// ]
-// ]
-
-// Hinweis: `parse_expr` arbeitet rekursiv (z.B. Klammern, Binäroperatoren).
 
 #figure(kind: "code", caption: [Funktionsparser (Quelle: src/parser.rs)])[
   #code-box[
@@ -758,51 +583,8 @@ pub fn emit_function(&mut self, func: &FunctionDecl) {
 ]
 
 Die Host-Funktion `print` wird als Import unter dem Namen `env.print_i64` bereitgestellt, damit sie im generierten WASM-Modul aufgerufen werden kann und die Ausgabe von Ganzzahlen über die Konsole ermöglicht.
-
-
-
-// Zusätzliche Stichpunkte:
-// - Eine IR erleichtert spätere Optimierungen, weil Transformationen nicht mehr direkt auf Quellsyntax arbeiten.
-// - Der Einsatz einer IR entspricht der Praxis großer Compiler-Infrastrukturen (z.B. LLVM IR als zentrale Zwischenschicht) @llvm-langref.
-// - Die Abbildung von Kontrollfluss (`if`, `while`) auf explizite Instruktionsfolgen ist ein zentraler Schritt vom AST zum Zielcode.
-// - [MUSS] Mapping `if/else` in WASM herausstellen: Bedingung auf Stack -> `if` -> optional `else` -> `end`.
-// - [MUSS] Mapping `while` in WASM herausstellen: `block` + `loop`, invertierte Bedingung mit `br_if`, Rücksprung mit `br 0`.
-// - [MUSS] Return-Verhalten dokumentieren: explizites `return` im AST + Fallback-Return im generierten Code.
-// - [NICE] Kurze Tabelle `AST-Konstrukt -> IR -> WASM` (je 1 Mini-Beispiel für Addition, Vergleich, `if/else`, `while`).
-// - [NICE] Offener Punkt: Dead Code nach `return` wird noch emittiert (keine DCE/CFG-Bereinigung).
-// - [STREICHEN] zu viele WASM-Details ohne direkten Bezug zu deinem eigenen Codepfad.
-
-
-
-
-// Erläuterung:
-// - `I64Const` entspricht dem Laden einer Konstante im WASM-Stack.
-// - `LocalGet/LocalSet` stehen für Variablenzugriffe.
-// - `I64Add` und `I64Eq` sind direkte WASM-Arithmetik/Vergleiche.
-// - Kontrollfluss wird über `If/Else/Block/Loop/End` abgebildet.
-
-
-
-// Erläuterung:
-// - Parameter werden zu lokalen Indizes abgebildet.
-// - Statements erzeugen eine lineare Folge von IR-Instruktionen.
-// - Danach folgt die Umwandlung der IR-Instruktionen in echtes WASM.
-
-
-
 == Ausführung und Beispiel
-Für diesen Selbstversuch wird der generierte WASM-Bytecode lokal mit der `wasmtime`-Laufzeit ausgeführt, anstatt ihn in einem Browser zu verwenden, auch wenn dies theoretisch möglich wäre. `wasmtime` ermöglicht das Laden von WASM-Modulen, die Instanziierung von Funktionen und den Aufruf von exportierten Funktionen wie `main`. Die Host-Funktion `print_i64` wird in Rust bereitgestellt und als Import in das WASM-Modul eingebunden, damit die `print(...)`-Funktion im generierten Code funktioniert. Der Ablauf umfasst die Umwandlung des Quelltexts in Tokens durch den eigenen Lexer, den Aufbau eines AST durch den Parser, die Generierung von WASM-Bytes durch den Codegenerator und schließlich die Ausführung mit Wasmtime @wasmtime-crate-docs.
-
-// - WASM wird lokal ausgeführt, nicht im Browser.
-// - Runtime: `wasmtime` (lädt Bytecode, instanziert Modul, ruft `main` auf).
-// - Host-Import `print_i64` wird in Rust bereitgestellt, damit `print(...)` funktioniert.
-// - Ablauf: Quelltext → Tokens → AST → WASM‑Bytes → Wasmtime ausführen.
-// - `Engine`, `Module`, `Store` und `Instance` sind die zentralen Bausteine der Wasmtime-Ausführung @wasmtime-crate-docs.
-// - Imports müssen beim Instanziieren bereitgestellt werden, sonst schlägt das Laden des Moduls fehl @wasmtime-hello-world.
-// - [MUSS] Konvention des Projekts explizit machen: Einstieg über exportierte `main`.
-// - [MUSS] Validierung erwähnen: ungültiges WASM fällt beim Laden/Instanziieren auf.
-// - [NICE] Grenzen der Laufzeit klar benennen (keine Dateisystem-/Netzwerkzugriffe ohne Imports; nur freigegebene Host-Funktionen).
-// - [NICE] Messpunkt ergänzen: Compile-Zeit vs. Laufzeitzeit für 1-2 Testprogramme.
+Für diesen Selbstversuch wird der generierte WASM-Bytecode lokal mit der `wasmtime`-Laufzeit ausgeführt, anstatt ihn in einem Browser zu verwenden, auch wenn dies theoretisch möglich wäre. `wasmtime` ermöglicht das Laden von WASM-Modulen, die Instanziierung von Funktionen und den Aufruf von exportierten Funktionen wie `main`. Die Host-Funktion `print_i64` wird in Rust bereitgestellt und als Import in das WASM-Modul eingebunden, damit die `print(...)`-Funktion im generierten Code funktioniert. Der Ablauf umfasst die Umwandlung des Quelltexts in Tokens durch den eigenen Lexer, den Aufbau eines AST durch den Parser und die Generierung von WASM-Bytes durch den Codegenerator. Anschließend erfolgt die Ausführung mit Wasmtime @wasmtime-crate-docs.
 
 #figure(kind: "code", caption: [WASM-Ausführung mit Wasmtime (Quelle: src/runner.rs)])[
   #code-box[
@@ -861,17 +643,8 @@ fn main(){
 Wenn man dieses Programm mit `cargo run -- factorial.eres` ausführt, wird die Ausgabe `3628800` (die Fakultät von 10) in der Konsole angezeigt, was die korrekte Funktion des Compilers und der Laufzeit bestätigt.
 
 == Eigener Beitrag und verwendete Tools
-// - Eigenleistung: Sprachsyntax festgelegt (`fn`, `let`, `if/else`, `while`, `return`)
-// - Eigenleistung: Lexer, Parser, Codegen, Runtime-Anbindung umgesetzt
-// - Eigenleistung: Testfälle für Lexer, Parser und Ausführung ergänzt
-// - Verwendete Tools: Rust
-// - Verwendete Tools: `wasm-encoder`
-// - Verwendete Tools: `wasmtime`
-// - Verwendete Tools: Typst
-// - Unterstützung: KI für Strukturierung/Brainstorming
-
 Die Eigenleistung umfasst die vollständige Implementierung eines Mini-Compilers von der Quelltextanalyse (Lexer, Parser) über die Codegenerierung bis zur Ausführung des generierten WASM-Codes. Die Sprachsyntax wurde von mir definiert, und alle Komponenten des Compilers wurden eigenständig entwickelt. Zusätzlich habe ich Testfälle erstellt, um die Funktionalität von Lexer, Parser und der Laufzeit zu validieren.
-Die verwendeten Tools umfassen die Programmiersprache Rust für die Implementierung, die `wasm-encoder`-Bibliothek für die Generierung von WASM-Bytecode, die `wasmtime`-Laufzeit für die Ausführung des generierten Codes und Typst für die Erstellung dieser Facharbeit. KI-Unterstützung wurde für die Strukturierung der Arbeit und das Brainstorming von Ideen genutzt, jedoch nur wenig für die eigentliche Code-Implementierung.
+Die verwendeten Tools umfassen die Programmiersprache Rust für die Implementierung, die `wasm-encoder`-Bibliothek für die Generierung von WASM-Bytecode, die `wasmtime`-Laufzeit für die Ausführung des generierten Codes, Git für Versionsverwaltung sowie Typst für die Erstellung dieser Facharbeit. Das zugehörige Projekt-Repository ist unter #link("https://github.com/justEres/facharbeit")[github.com/justEres/facharbeit] verfügbar. KI-Unterstützung wurde für die Strukturierung der Arbeit und das Brainstorming von Ideen genutzt, jedoch nur wenig für die eigentliche Code-Implementierung.
 
 
 == Testwerkzeuge und CLI-Nutzung
@@ -879,19 +652,6 @@ Um die Entwicklung zu vereinfachen und die Funktionalität zu demonstrieren, wur
 
 
 
-
-// - Token-Ausgabe: `cargo run -- <datei> --print-tokens`
-// - AST-Ausgabe: `cargo run -- <datei> --print-ast`
-// - WAT-Ausgabe: `cargo run -- <datei> --print-wat`
-// - Artefakt: Token-Stream (Lexer)
-// - Artefakt: AST (Parser)
-// - Artefakt: WAT (Codegen)
-// - [MUSS] Fehlerfall demonstrieren (z.B. unerwartetes Token) inkl. Position/Context der Fehlermeldung.
-// - [MUSS] Testmatrix (kurz, tabellarisch): arithmetische Ausdrücke, Vergleich + `if/else`, Schleife, Rekursion (`fact`), Grenzfall (leere Parameterliste/fehlendes Semikolon).
-// - [NICE] Gegenüberstellung "erwartete Ausgabe vs. tatsächliche Ausgabe" für 2-3 Programme.
-// - [STREICHEN] zu viele CLI-Varianten ohne Erkenntnisgewinn (auf Kernbefehle begrenzen).
-
-// Kurze CLI-Beispiele mit verkürzter Ausgabe:
 
 Token-Ausgabe (zeigt die Arbeit des Lexers):
 #figure(kind: "code", caption: [CLI: Token-Stream prüfen (`--print-tokens`)])[
@@ -942,41 +702,54 @@ Generated WAT:
 ]
 ]
 
+// === Ergebnistabelle (Selbstversuch)
+// - Zweck: erwartetes und tatsächliches Verhalten pro Testfall strukturiert vergleichen.
+// - Ausfüllen: kurze, überprüfbare Aussagen (kein Fließtext).
+// - Bewertung: `ok`, `teilweise`, `nicht ok`.
+
+// #table(
+//   columns: (1.6fr, 2.1fr, 2.1fr, 0.8fr),
+//   stroke: 0.5pt,
+//   inset: 4pt,
+//   table.header(
+//     [Testfall],
+//     [Erwartetes Ergebnis],
+//     [Tatsächliches Ergebnis],
+//     [Bewertung],
+//   ),
+//   [`add.eres` (`--print-tokens`)],
+//   [Tokenfolge vollständig, inkl. `EOF`],
+//   [Tokenfolge entspricht Erwartung],
+//   [ok],
+//   [`add.eres` (`--print-ast`)],
+//   [AST mit `add` und `main` korrekt aufgebaut],
+//   [AST-Struktur wie erwartet],
+//   [ok],
+//   [`add.eres` (`--print-wat`)],
+//   [WAT-Modul mit Import/Export und aufrufbarer `main`],
+//   [WAT wird erzeugt, Ausführung liefert `12`],
+//   [ok],
+//   [`factorial.eres` (Ausführung)],
+//   [rekursive Fakultät für `10` ergibt `3628800`],
+//   [Konsolenausgabe `3628800`],
+//   [ok],
+//   [Fehlerfall (z.B. fehlendes `;`)],
+//   [Parser meldet klaren Fehler statt Absturz],
+//   [eintragen],
+//   [eintragen],
+// )
+
 
 
 
 = Fazit
-// - Zusammenfassung der zentralen Ergebnisse
-// - Persönliche Stellungnahme zur Leitfrage
-// - Selbstreflexion: Herausforderungen und Verbesserungen
-
-// - Einheitliches Ziel (WASM) statt viele Plattformen
-// - Backend-Aufwand reduziert
-// - Frontend bleibt komplex
-// - Abhängigkeit von Host-Imports/Sandbox
-// - Eignung für Hobby-Compiler: deutlich besser, aber nicht trivial
-
-// - Selbstversuch
-//     - mehr proof of concept als geeignet für produktion
-//     - sehr gut zum lernen  
-
-// Optional streichen (bereits als Stichpunkte darunter enthalten):
 Um die Leitfrage zu beantworten: WebAssembly erleichtert den Bau eigener Compiler für Amateurentwickler erheblich, da es ein einheitliches Ziel bietet und viele plattformspezifische Details im Backend abstrahiert. Allerdings bleibt die Entwicklung eines Compilers eine komplexe Aufgabe, insbesondere im Frontend (Lexing, Parsing, semantische Analyse). Die Abhängigkeit von Host-Imports und der Sandbox-Umgebung von WASM kann ebenfalls Einschränkungen mit sich bringen. Insgesamt ist WASM eine vielversprechende Plattform für Hobby-Compiler, aber es erfordert dennoch ein gewisses Maß an technischem Verständnis und Aufwand.
 
-Mein persönliches Fazit ist, dass die Entwicklung dieses Mini-Compilers eine äußerst lehrreiche Erfahrung war. Sie hat mir geholfen, die theoretischen Konzepte des Compilerbaus in die Praxis umzusetzen und die Herausforderungen zu verstehen, die mit der Erstellung eines Compilers verbunden sind. Obwohl das Projekt mehr als Proof of Concept denn als produktionsreifer Compiler zu betrachten ist, hat es mir wertvolle Einblicke gegeben und meine Fähigkeiten im Bereich Compilerentwicklung deutlich verbessert.
+Mein persönliches Fazit ist, dass die Entwicklung dieses Mini-Compilers eine äußerst lehrreiche Erfahrung war. Sie hat mir geholfen, die theoretischen Konzepte des Compilerbaus in die Praxis umzusetzen und die Herausforderungen zu verstehen, die mit der Erstellung eines Compilers verbunden sind. Obwohl das Projekt eher ein Proof of Concept als ein produktionsreifer Compiler ist, hat es mir wertvolle Einblicke gegeben und meine Fähigkeiten im Bereich Compilerentwicklung deutlich verbessert.
 
 Die größte Herausforderung lag in der Implementierung der Parserlogik, insbesondere bei der Handhabung von Operatorpräzedenz und der Fehlerbehandlung. Auch die Codegenerierung für WASM war komplex, da ich mich mit den Details der WASM-Instruktionen und der Modulstruktur auseinandersetzen musste. Das Tooling rund um die Entwicklung eines Compilers, einschließlich Testen und Debuggen, stellte ebenfalls eine Herausforderung dar.
 
 Um das Projekt weiterzuführen, wären Verbesserungen in der Fehlerdiagnostik wünschenswert, z.B. durch genauere Fehlermeldungen mit Zeilen- und Spaltenangaben sowie die Möglichkeit zur Fehlererholung. Ein weiterer Schritt wäre die Implementierung eines Typcheckers, um statische Typfehler zu erkennen. Schließlich könnte der Sprachumfang erweitert werden, um weitere Datentypen, Kontrollstrukturen oder Funktionen zu unterstützen.
-
-// - Zusammenfassung: WASM reduziert Backend-Komplexität
-// - Persönliche Stellungnahme: Ziel der Arbeit erreicht / Leitfrage beantwortet
-// - Selbstreflexion: größte Herausforderungen (Parserlogik, Codegen, Tooling)
-// - Selbstreflexion: nächste Iteration (Fehlerdiagnostik, Typen, Sprachumfang)
-// - [MUSS] Leitfrage final gewichten: WASM senkt Einstiegshürde im Backend, Gesamtkomplexität bleibt mittel-hoch wegen Frontend + Semantik.
-// - [MUSS] Konkrete Antwortformel für den Schlusssatz: "erleichtert deutlich, ersetzt aber kein Compiler-Grundwissen".
-// - [NICE] Ausblick (nächste Iteration): Typchecker, bessere Fehlermeldungen (Zeile/Spalte + Recovery), kleine Optimierungen (constant folding, dead code).
-// - [STREICHEN] Wiederholung der Einleitungsaussagen ohne neue Bewertung.
 
 #pagebreak()
 
@@ -991,13 +764,13 @@ Ausschließlich Online-Quellen, da keine gedruckten Bücher verwendet wurden. Al
 #let ref-order = (
   "wasmtime-hello-world",
   "wasmtime-crate-docs",
-  "crafting-parsing-expr",
-  "crafting-scanning",
   "gcc-overall-options",
   "ibm-compiler",
   "llvm-langref",
   "mdn-wasm-concepts",
   "mdn-wasm-text-format",
+  "crafting-parsing-expr",
+  "crafting-scanning",
   "rustc-overview",
   "rustc-parser",
   "wasm-w3c-core",
@@ -1022,13 +795,31 @@ Ausschließlich Online-Quellen, da keine gedruckten Bücher verwendet wurden. Al
 #set par(justify: true, leading: 0.95em)
 
 
+= Einsatz von KI
+
+Für die Facharbeit wurde KI als unterstützendes Hilfsmittel für Strukturierung, sprachliche Überarbeitung und Layout in Typst genutzt. Die inhaltliche Entwicklung des Selbstversuchs, der Compiler-Code und die technischen Entscheidungen wurden eigenständig erarbeitet.
+
+#pagebreak()
+
+#set page(margin: 0pt, numbering: none)
+#image("formblaetter.pdf", page: 3, width: 100%, height: 100%)
+#pagebreak()
+
+#set page(
+  paper: "a4",
+  margin: (top: 2.5cm, bottom: 2.5cm, left: 3cm, right: 5cm),
+  numbering: none,
+)
+
 = Anhang: Quellcode
 
-Anhang-Inhaltsverzeichnis:
+
+
+#metadata(none) <appendix-code-start>
 
 #outline(
   title: "Quellcode-Übersicht",
-  target: heading.where(level: 3),
+  target: heading.where(level: 3).after(<appendix-code-start>),
 )
 
 
@@ -1045,11 +836,3 @@ Anhang-Inhaltsverzeichnis:
 #source-file("src/codegen/mod.rs", lang: "rust")
 #source-file("src/codegen/module.rs", lang: "rust")
 #source-file("src/codegen/stmt.rs", lang: "rust")
-
-#pagebreak()
-
-// Formblätter (Restseiten)
-#set page(margin: 0pt, numbering: none)
-#image("formblaetter.pdf", page: 2, width: 100%, height: 100%)
-#pagebreak()
-#image("formblaetter.pdf", page: 3, width: 100%, height: 100%)
