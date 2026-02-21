@@ -1,7 +1,10 @@
 use std::str::Chars;
+use std::fmt::{Display, Formatter};
 
+use crate::diagnostics::render_snippet;
 use crate::token::{Span, Token, TokenKind};
 
+/// Stateful lexer for one source string.
 pub struct Lexer<'a> {
     chars: Chars<'a>,
     pos: usize,
@@ -216,21 +219,43 @@ pub fn lex_file(src: &str) -> Result<Vec<Token>, LexError> {
 
 #[derive(Debug)]
 pub enum LexError {
+    /// Input contained a character that cannot start any valid token.
     UnexpectedChar { ch: char, span: Span },
+    /// Integer literal could not be parsed into the target numeric type.
     InvalidNumber { span: Span },
 }
 
+impl Display for LexError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LexError::UnexpectedChar { ch, span } => write!(
+                f,
+                "unexpected character '{}' at byte range {}..{}",
+                ch, span.start, span.end
+            ),
+            LexError::InvalidNumber { span } => {
+                write!(f, "invalid number literal at byte range {}..{}", span.start, span.end)
+            }
+        }
+    }
+}
+
 /// Prints a human-readable lexer error.
-pub fn report_lex_error(_src: &str, error: LexError) {
+pub fn report_lex_error(src: &str, error: LexError) {
     match error {
         LexError::UnexpectedChar { ch, span } => {
+            let snippet = render_snippet(src, &span);
             eprintln!(
-                "LexError: Unexpected character '{}' at {}:{}",
-                ch, span.start, span.end
+                "LexError at line {}, column {}: unexpected character '{}'\n{}\n{}",
+                snippet.line, snippet.column, ch, snippet.source_line, snippet.marker_line
             );
         }
         LexError::InvalidNumber { span } => {
-            eprintln!("LexError: Invalid number at {}:{}", span.start, span.end);
+            let snippet = render_snippet(src, &span);
+            eprintln!(
+                "LexError at line {}, column {}: invalid number literal\n{}\n{}",
+                snippet.line, snippet.column, snippet.source_line, snippet.marker_line
+            );
         }
     }
 }

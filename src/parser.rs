@@ -1,6 +1,9 @@
 use crate::ast::*;
+use crate::diagnostics::render_snippet;
 use crate::token::*;
+use std::fmt::{Display, Formatter};
 
+/// Recursive-descent parser over lexer tokens.
 #[derive(Debug)]
 pub struct Parser<'a> {
     tokens: &'a [Token],
@@ -448,6 +451,49 @@ impl<'a> Parser<'a> {
 #[allow(dead_code)]
 #[derive(Debug)]
 pub enum ParseError {
+    /// A specific token was expected but a different token was found.
     UnexpectedToken { expected: String, found: Token },
+    /// Expression parsing was expected to start but failed.
     ExpectedExpression { span: Span },
+}
+
+impl Display for ParseError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParseError::UnexpectedToken { expected, found } => {
+                write!(
+                    f,
+                    "unexpected token: expected {}, found {}",
+                    expected,
+                    found.kind.name()
+                )
+            }
+            ParseError::ExpectedExpression { .. } => write!(f, "expected expression"),
+        }
+    }
+}
+
+/// Prints a human-readable parser error with a source snippet.
+pub fn report_parse_error(src: &str, error: &ParseError) {
+    match error {
+        ParseError::UnexpectedToken { expected, found } => {
+            let snippet = render_snippet(src, &found.span);
+            eprintln!(
+                "ParseError at line {}, column {}: expected {}, found {}\n{}\n{}",
+                snippet.line,
+                snippet.column,
+                expected,
+                found.kind.name(),
+                snippet.source_line,
+                snippet.marker_line
+            );
+        }
+        ParseError::ExpectedExpression { span } => {
+            let snippet = render_snippet(src, span);
+            eprintln!(
+                "ParseError at line {}, column {}: expected expression\n{}\n{}",
+                snippet.line, snippet.column, snippet.source_line, snippet.marker_line
+            );
+        }
+    }
 }

@@ -6,6 +6,7 @@ use crate::{
     codegen::module::{CodegenError, FuncGen},
 };
 
+/// Emits instructions for an expression and returns whether it leaves a stack value.
 pub fn emit_expr(
     expr: &Expr,
     r#gen: &mut FuncGen,

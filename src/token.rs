@@ -1,3 +1,4 @@
+/// Token kinds emitted by the lexer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     // Keywords
@@ -45,6 +46,7 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
+    /// Human-readable token name for diagnostics.
     pub fn name(&self) -> String {
         match self {
             TokenKind::Ident(_) => "identifier".to_string(),
@@ -54,12 +56,14 @@ impl TokenKind {
     }
 }
 
+/// One token with source span information.
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
 }
 
+/// Half-open byte span `[start, end)` in the original source.
 #[derive(Debug, Clone)]
 pub struct Span {
     pub start: usize,

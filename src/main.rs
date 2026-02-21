@@ -2,10 +2,12 @@ use clap::Parser;
 
 use crate::compiler::CompileError;
 use crate::lexer::report_lex_error;
+use crate::parser::report_parse_error;
 
 mod ast;
 mod codegen;
 mod compiler;
+mod diagnostics;
 mod lexer;
 mod parser;
 mod runner;
@@ -42,7 +44,7 @@ fn main() {
             return;
         }
         Err(CompileError::Parse(e)) => {
-            eprintln!("ParseError: {:?}", e);
+            report_parse_error(&src, &e);
             return;
         }
         Err(CompileError::Codegen(e)) => {

@@ -140,4 +140,25 @@ mod tests {
         let err = compile_bytes_from_src(src).expect_err("expected unknown function error");
         assert!(err.contains("unknown function call target"));
     }
+
+    #[test]
+    fn run_if_else_control_flow() {
+        let src = "fn main() -> Int { if 0 { return 1; } else { return 7; } }";
+        let res = run_source(src, vec![]).expect("run failed");
+        assert_eq!(res, Some(7));
+    }
+
+    #[test]
+    fn run_while_skips_body_when_false() {
+        let src = "fn main() -> Int { while 0 { return 1; } return 2; }";
+        let res = run_source(src, vec![]).expect("run failed");
+        assert_eq!(res, Some(2));
+    }
+
+    #[test]
+    fn run_early_return_in_if() {
+        let src = "fn main() -> Int { if 1 { return 9; } return 1; }";
+        let res = run_source(src, vec![]).expect("run failed");
+        assert_eq!(res, Some(9));
+    }
 }

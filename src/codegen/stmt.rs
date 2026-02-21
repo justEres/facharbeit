@@ -9,6 +9,7 @@ use crate::{
 use std::collections::HashMap;
 use wasm_encoder::*;
 
+/// Emits instructions for one statement.
 pub fn emit_stmt(
     stmt: &Stmt,
     r#gen: &mut FuncGen,

@@ -7,10 +7,14 @@ use wasm_encoder::*;
 
 use crate::{ast::FunctionDecl, codegen::stmt::emit_stmt};
 
+/// Code generation failures that can occur after parsing.
 #[derive(Debug)]
 pub enum CodegenError {
+    /// Function name is declared more than once in one module.
     DuplicateFunction { name: String },
+    /// A referenced local variable was not declared.
     UnknownLocal { name: String },
+    /// A call targets a function that was never declared/imported.
     UnknownFunction { name: String },
 }
 
@@ -30,6 +34,7 @@ impl Display for CodegenError {
 
 impl Error for CodegenError {}
 
+/// Stateful WebAssembly module builder for language functions.
 pub struct ModuleGen {
     module: Module,
     types: TypeSection,
@@ -44,6 +49,7 @@ pub struct ModuleGen {
 }
 
 impl ModuleGen {
+    /// Creates an empty module generator.
     pub fn new() -> Self {
         Self {
             module: Module::new(),
@@ -58,6 +64,7 @@ impl ModuleGen {
         }
     }
 
+    /// Registers built-in host functions (currently `print`).
     pub fn init_with_host_functions(mut self) -> Self {
         // Register host imports (currently only print).
         self.add_print_import();
@@ -80,6 +87,7 @@ impl ModuleGen {
         self.func_indices.insert("print".to_string(), (idx, false));
     }
 
+    /// Finalizes sections and returns the encoded wasm module bytes.
     pub fn finish(mut self) -> Vec<u8> {
         self.module.section(&self.types);
         self.module.section(&self.imports);
@@ -89,6 +97,7 @@ impl ModuleGen {
         self.module.finish()
     }
 
+    /// Reserves function signature/index metadata before emitting bodies.
     pub fn declare_function(&mut self, func: &FunctionDecl) -> Result<(), CodegenError> {
         if self.func_indices.contains_key(&func.name) {
             return Err(CodegenError::DuplicateFunction {
@@ -117,6 +126,7 @@ impl ModuleGen {
         Ok(())
     }
 
+    /// Emits one function body into the code section.
     pub fn emit_function(&mut self, func: &FunctionDecl) -> Result<(), CodegenError> {
         let mut r#gen = FuncGen {
             locals: Vec::new(),
@@ -159,10 +169,14 @@ impl ModuleGen {
     }
 }
 
+/// Per-function code generation state.
 pub struct FuncGen {
+    /// Additional local declarations (params are implicit locals 0..n).
     pub locals: Vec<ValType>,
+    /// Symbol table for locals and parameters.
     pub local_map: HashMap<String, u32>,
     // Instruction list for one function body.
     pub instructions: Vec<IrInstruction>,
+    /// Whether the current function expects a return value.
     pub has_return: bool,
 }

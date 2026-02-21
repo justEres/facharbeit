@@ -1,5 +1,6 @@
 use wasm_encoder::{BlockType, Instruction};
 
+/// Compiler-internal instruction set that maps 1:1 to wasm opcodes.
 pub enum IrInstruction {
     I64Const(i64),
     I64Eqz,
@@ -29,6 +30,7 @@ pub enum IrInstruction {
 }
 
 impl IrInstruction {
+    /// Converts this IR instruction into a wasm-encoder instruction.
     pub fn to_wasm(&self) -> Instruction<'_> {
         match self {
             IrInstruction::I64Const(v) => Instruction::I64Const(*v),

@@ -10,25 +10,32 @@ use crate::token::Token;
 /// Compiled artifacts produced by the compiler frontend + backend pipeline.
 #[derive(Debug)]
 pub struct CompileArtifacts {
+    /// Token stream emitted by the lexer.
     pub tokens: Vec<Token>,
+    /// Parsed AST program.
     pub program: Program,
+    /// Generated WebAssembly module bytes.
     pub bytes: Vec<u8>,
+    /// Number of parameters expected by `main`.
     pub main_param_count: usize,
 }
 
 /// Structured compile errors to keep frontend failures distinct.
 #[derive(Debug)]
 pub enum CompileError {
+    /// Lexing failed.
     Lex(LexError),
+    /// Parsing failed.
     Parse(ParseError),
+    /// Code generation failed.
     Codegen(CodegenError),
 }
 
 impl Display for CompileError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            CompileError::Lex(e) => write!(f, "lex error: {:?}", e),
-            CompileError::Parse(e) => write!(f, "parse error: {:?}", e),
+            CompileError::Lex(e) => write!(f, "lex error: {}", e),
+            CompileError::Parse(e) => write!(f, "parse error: {}", e),
             CompileError::Codegen(e) => write!(f, "codegen error: {}", e),
         }
     }
