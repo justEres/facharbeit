@@ -99,4 +99,13 @@ mod tests {
             _ => panic!("unexpected error variant"),
         }
     }
+
+    #[test]
+    fn generated_wat_contains_main_export() {
+        let src = "fn main() -> Int { return 5; }";
+        let out = compile_source(src).expect("compile failed");
+        let wat = wasmprinter::print_bytes(&out.bytes).expect("wat conversion failed");
+        assert!(wat.contains("(export \"main\" (func"));
+        assert!(wat.contains("(func (;"));
+    }
 }

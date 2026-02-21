@@ -246,14 +246,14 @@ pub fn report_lex_error(src: &str, error: LexError) {
         LexError::UnexpectedChar { ch, span } => {
             let snippet = render_snippet(src, &span);
             eprintln!(
-                "LexError at line {}, column {}: unexpected character '{}'\n{}\n{}",
+                "LexError [E-LX01] at line {}, column {}: unexpected character '{}'\nhelp: remove or replace the unsupported character\n{}\n{}",
                 snippet.line, snippet.column, ch, snippet.source_line, snippet.marker_line
             );
         }
         LexError::InvalidNumber { span } => {
             let snippet = render_snippet(src, &span);
             eprintln!(
-                "LexError at line {}, column {}: invalid number literal\n{}\n{}",
+                "LexError [E-LX02] at line {}, column {}: invalid number literal\nhelp: use a valid 64-bit signed integer literal\n{}\n{}",
                 snippet.line, snippet.column, snippet.source_line, snippet.marker_line
             );
         }

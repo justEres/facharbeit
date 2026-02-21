@@ -1,13 +1,6 @@
 use std::sync::{Arc, Mutex};
 use wasmtime::{Engine, Instance, Store, Val};
 
-use crate::compiler::compile_source;
-
-/// Compile source to wasm bytes.
-pub fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
-    compile_source(src).map(|out| out.bytes).map_err(|e| e.to_string())
-}
-
 /// Run wasm bytes calling `main` with the provided i64 arguments.
 /// Returns Ok(Some(i64)) if the function returns a single i64, Ok(None) if
 /// the function has no return, or Err on failure.
@@ -53,15 +46,19 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
     }
 }
 
-/// Convenience helper: compile source and run it.
-pub fn run_source(src: &str, args: Vec<i64>) -> Result<Option<i64>, String> {
-    let bytes = compile_bytes_from_src(src)?;
-    run_wasm_bytes(&bytes, args)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compiler::compile_source;
+
+    fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
+        compile_source(src).map(|out| out.bytes).map_err(|e| e.to_string())
+    }
+
+    fn run_source(src: &str, args: Vec<i64>) -> Result<Option<i64>, String> {
+        let bytes = compile_bytes_from_src(src)?;
+        run_wasm_bytes(&bytes, args)
+    }
 
     #[test]
     fn run_if_gt_sample() {

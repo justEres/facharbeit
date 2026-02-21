@@ -17,6 +17,30 @@ Optionale Debug-Ausgaben:
 cargo run -- examples/add_compare.eres --print-tokens --print-ast --print-wat
 ```
 
+Nur prüfen (ohne Ausführung):
+
+```bash
+cargo run -- examples/add_compare.eres --check
+```
+
+Explizite `main`-Argumente:
+
+```bash
+cargo run -- examples/add_compare.eres --args "1,2,3"
+```
+
+Artefakte in Dateien schreiben:
+
+```bash
+cargo run -- examples/add_compare.eres --emit-tokens tokens.txt --emit-ast ast.txt --emit-wat out.wat --emit-wasm out.wasm
+```
+
+Mini-REPL (eine Zeile = ein vollständiges Programm-Snippet):
+
+```bash
+cargo run -- --repl
+```
+
 ## Projektplan
 
 ### Phase 1: Aufräumen und Grundlage stabilisieren
@@ -53,3 +77,7 @@ cargo run -- examples/add_compare.eres --print-tokens --print-ast --print-wat
 8. Type Inference für lokale Variablen und Funktionsrückgaben, wo eindeutig.
 9. `let`/`mut`-Semantik und kontrollierte Immutability für lesbaren Script-Code.
 10. Tooling: Formatter, bessere CLI-Fehlerausgaben, optionales REPL.
+
+## Tooling Backlog
+
+1. `.eres` Formatter (`fmt`-Subcommand) bauen, damit Code-Stil automatisch vereinheitlicht wird.

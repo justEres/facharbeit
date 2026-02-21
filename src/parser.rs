@@ -479,7 +479,7 @@ pub fn report_parse_error(src: &str, error: &ParseError) {
         ParseError::UnexpectedToken { expected, found } => {
             let snippet = render_snippet(src, &found.span);
             eprintln!(
-                "ParseError at line {}, column {}: expected {}, found {}\n{}\n{}",
+                "ParseError [E-PS01] at line {}, column {}: expected {}, found {}\nhelp: check punctuation/order near this token\n{}\n{}",
                 snippet.line,
                 snippet.column,
                 expected,
@@ -491,7 +491,7 @@ pub fn report_parse_error(src: &str, error: &ParseError) {
         ParseError::ExpectedExpression { span } => {
             let snippet = render_snippet(src, span);
             eprintln!(
-                "ParseError at line {}, column {}: expected expression\n{}\n{}",
+                "ParseError [E-PS02] at line {}, column {}: expected expression\nhelp: insert a literal, variable, call, or parenthesized expression\n{}\n{}",
                 snippet.line, snippet.column, snippet.source_line, snippet.marker_line
             );
         }
