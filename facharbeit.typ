@@ -1,5 +1,3 @@
-
-
 #set page(
   paper: "a4",
   margin: (top: 2.5cm, bottom: 2.5cm, left: 3cm, right: 5cm),
@@ -7,29 +5,24 @@
   number-align: right + bottom
 )
 
-
 #set text(
   lang: "de",
-  size: 12pt, 
+  size: 12pt,
   font: "Times New Roman"
 )
 
 // Nutzt die lokal installierte Schriftfamilie (siehe ~/.local/share/fonts)
 #set par(justify: true, leading: 0.95em)
 
-#show heading: set block(above: 0.9em, below: 0.3cm)
-#show heading.where(level: 1): set block(below: 0.75cm)
+#show heading: set block(above: 0.45cm, below: 0.45cm)
 #show heading.where(level: 1): set text(size: 18pt)
-#show heading.where(level: 2): set block(below: 0.55cm, above: 0.65cm)
 #show heading.where(level: 2): set text(size: 15pt)
-#show heading.where(level: 3): set block(below: 0.4cm, above: 0.5cm)
 #show heading.where(level: 3): set text(size: 12pt)
 
 #import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 #import "vendor/codly/codly.typ": *
 
 #let render-code-blocks = true // auf false setzen, um Codeblöcke auszublenden
-
 
 #show: codly-init.with()
 #codly(
@@ -103,7 +96,7 @@
   if render-code-blocks { it } else { [] }
 }
 #show raw.where(block: false): it => box(
-  
+
   fill: rgb("#f0f0f0"),
   radius: 2pt,
   outset: (x: 3pt, y: 2pt),
@@ -122,7 +115,6 @@
   number-align: right + bottom
 )
 
-
 #set page(numbering: none)
 #outline(title: "Inhaltsverzeichnis")
 
@@ -137,42 +129,41 @@
 
 = Einleitung
 
-Unterschiedliche Programmiersprachen unterscheiden sich in Syntax, Funktionsumfang und Einsatzbereich.
+Programmiersprachen variieren in ihrer Syntax, ihrem Funktionsumfang und ihren Einsatzbereichen.
 So ist es ein Traum vieler Entwickler, sich eine eigene Programmiersprache zu erschaffen, die perfekt an die eigenen Bedürfnisse angepasst ist.
 
 Trotzdem bleibt die Entwicklung einer eigenen Programmiersprache für viele Entwickler ein fernes Ziel, da sie häufig mit einem hohen technischen Aufwand verbunden ist und viel Erfahrung erfordert.
-Ein wesentlicher Grund dafür liegt im Bau eines sogenannten Compilers. 
+Ein wesentlicher Grund dafür liegt im Bau eines sogenannten Compilers.
 
-Ein Compiler ist ein Programm, das Quellcode in eine für den Computer ausführbare Form übersetzt. Der komplexeste Teil ist dabei das Backend, das für die Erzeugung von plattformspezifischem Maschinencode verantwortlich ist. Unterschiedliche Prozessorarchitekturen und Betriebssysteme erfordern jeweils eigene 
-Lösungen, was den Entwicklungsaufwand stark erhöht. 
-Aus diesem Grund werden Compiler in der Regel von größeren Entwicklerteams oder 
+Ein Compiler ist ein Programm, das Quellcode in eine für den Computer ausführbare Form übersetzt. Der komplexeste Teil ist dabei das Backend, das für die Erzeugung von plattformspezifischem Maschinencode verantwortlich ist. Unterschiedliche Prozessorarchitekturen und Betriebssysteme erfordern jeweils eigene
+Lösungen, was den Entwicklungsaufwand stark erhöht.
+Aus diesem Grund werden Compiler in der Regel von größeren Entwicklerteams oder
 Unternehmen realisiert und nur selten von einzelnen Amateurentwicklern.
 
-Mit der Einführung von WebAssembly (WASM) im Jahr 2017 wurde ein neuer Ansatz vorgestellt, der genau an dieser Stelle ansetzt. 
-WebAssembly stellt ein standardisiertes, plattformunabhängiges Ausführungsformat dar @wasm-spec, 
-das von modernen Webbrowsern und zunehmend auch außerhalb des Webs unterstützt wird. 
-Statt direkt Maschinencode für eine bestimmte Architektur zu erzeugen, können Compiler 
-WebAssembly als gemeinsames Ziel verwenden. 
+Mit der Einführung von WebAssembly (WASM) im Jahr 2017 wurde ein neuer Ansatz vorgestellt, der genau an dieser Stelle ansetzt.
+WebAssembly stellt ein standardisiertes, plattformunabhängiges Ausführungsformat dar @wasm-spec,
+das von modernen Webbrowsern und zunehmend auch außerhalb des Webs unterstützt wird.
+Statt direkt Maschinencode für eine bestimmte Architektur zu erzeugen, können Compiler
+WebAssembly als gemeinsames Ziel verwenden.
 Dadurch werden viele hardware- und betriebssystemspezifische Details abstrahiert.
 
-Diese Entwicklung wirft die Frage auf, ob WebAssembly den Einstieg in den Compilerbau 
-grundlegend erleichtert. 
-Insbesondere stellt sich die Frage, ob es durch WebAssembly erstmals realistisch wird, 
+Diese Entwicklung wirft die Frage auf, ob WebAssembly den Einstieg in den Compilerbau
+grundlegend erleichtert.
+Insbesondere stellt sich die Frage, ob es durch WebAssembly erstmals realistisch wird,
 dass auch Amateurentwickler eigene, funktionsfähige Compiler entwickeln können.
 
 Aus diesem Zusammenhang ergibt sich die Leitfrage dieser Facharbeit:
 *Inwiefern erleichtert WebAssembly den Bau eigener Compiler für Amateurentwickler?*
 
-Zur Beantwortung dieser Frage werden zunächst die grundlegenden Konzepte des 
-Compilerbaus sowie die Funktionsweise von WebAssembly erläutert. 
-Anschließend wird in einem praktischen Selbstversuch ein einfacher Mini-Compiler 
-für eine eigens definierte Programmiersprache entwickelt, der WebAssembly-Bytecode 
-generiert. 
-Auf Basis dieser Erfahrungen werden die Chancen und Grenzen von WebAssembly 
+Zur Beantwortung dieser Frage werden zunächst die grundlegenden Konzepte des
+Compilerbaus sowie die Funktionsweise von WebAssembly erläutert.
+Anschließend wird in einem praktischen Selbstversuch ein einfacher Mini-Compiler
+für eine eigens definierte Programmiersprache entwickelt, der WebAssembly-Bytecode
+generiert.
+Auf Basis dieser Erfahrungen werden die Chancen und Grenzen von WebAssembly
 als Zielplattform für Hobby-Compiler bewertet.
 
 Im weiteren Verlauf wird untersucht, inwiefern WebAssembly den Einstieg in den Compilerbau erleichtert. Im Fokus stehen dabei die plattformunabhängige Ausführung und die Abstraktion von Hardwaredetails, durch die sich die Implementierung stärker auf Sprach- und Compilerlogik konzentrieren kann.
-
 
 = Vorwissen: Compiler und WebAssembly
 // - Einordnung: Grundbegriffe des Compilerbaus
@@ -187,7 +178,7 @@ Dieses Kapitel führt in die Grundkonzepte des Compilerbaus ein und erläutert d
 // - Vorteil: schnellere Ausführung, Optimierungen vorab möglich.
 // - Nachteil: zusätzlicher Übersetzungsschritt, Fehler erst beim Kompilieren sichtbar.
 
-Ein Compiler ist ein Programm, welches Programmcode in eine andere, für Computer verständliche Form übersetzt. Dabei ist es ganz egal, ob es Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung ist. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn nur und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können. Zusätzlich erleichtern moderne Compiler den Entwicklern das Leben, indem sie häufige Fehler schon beim Übersetzen des Quellcodes finden und verständliche Fehlermeldungen ausgeben, während Interpreter Fehler erst zur Laufzeit sichtbar werden, was die Fehlersuche erschwert @ibm-compiler. Wenn der Begriff "Compiler" fällt, ist selten nur der reine Übersetzungsvorgang gemeint, sondern oft die gesamte Toolchain, die auch Assembler und Linker umfasst, um aus Quellcode eine ausführbare Datei zu erzeugen @gcc-overall-options.
+Ein Compiler ist ein Programm, das Programmcode in eine andere, für Computer verständliche Form übersetzt. Dabei kann das Ziel Binärcode für eine bestimmte Prozessorarchitektur, Bytecode für eine virtuelle Maschine oder eine Zwischenrepräsentation für die Weiterverarbeitung sein. In Abgrenzung zu einem Interpreter führt ein Compiler den Code nicht direkt aus, sondern übersetzt ihn und führt dabei optional Optimierungen durch. Kompilierte Programme laufen dadurch in der Regel schneller als interpretierte Programme, da die Übersetzung bereits vor der Ausführung stattfindet und Optimierungen vorgenommen werden können. Zusätzlich erleichtern moderne Compiler den Entwicklern das Leben, indem sie häufige Fehler schon beim Übersetzen des Quellcodes finden und verständliche Fehlermeldungen ausgeben, während Interpreter Fehler erst zur Laufzeit sichtbar machen, was die Fehlersuche erschwert @ibm-compiler. Wenn der Begriff "Compiler" fällt, ist selten nur der reine Übersetzungsvorgang gemeint, sondern oft die gesamte Toolchain, die auch Assembler und Linker umfasst, um aus Quellcode eine ausführbare Datei zu erzeugen @gcc-overall-options.
 
 == Aufbau eines Compilers (Frontend, Backend)
 // - Eingabephase: Quellcode wird gelesen und in Tokens zerlegt (Lexing).
@@ -199,7 +190,7 @@ Ein Compiler ist ein Programm, welches Programmcode in eine andere, für Compute
 // - Codeerzeugung: Registerallokation, Instruktionsauswahl, Plattformdetails.
 // - Ausgabe: Binärdatei, Objektdatei oder Bytecode.
 
-Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgegrenzte Aufgaben übernehmen: Lexing (Erzeugung von Token aus Quelltext), Parsing (Aufbau eines abstrakten Syntaxbaums, AST), semantische Analyse (Typprüfung, Namensauflösung, Scope- und Fehlerprüfung), eine Zwischenrepräsentation und Optimierungsphase (IR-Transformationen, konstante Auswertung, Dead-Code-Elimination) sowie das Backend (Code- bzw. Bytecode-Generierung, z.B. für WebAssembly). Diese Modularität erleichtert Entwicklung, Testbarkeit und Wiederverwendbarkeit der einzelnen Komponenten. Zusätzlich bietet diese Struktur die Möglichkeit, verschiedene Frontends (für unterschiedliche Sprachen) mit demselben Backend zu kombinieren, was die Flexibilität erhöht. Moderne Compiler sind genau entlang solcher Schritte aufgebaut @rustc-overview. 
+Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgegrenzte Aufgaben übernehmen: Lexing (Erzeugung von Token aus Quelltext), Parsing (Aufbau eines abstrakten Syntaxbaums, AST), semantische Analyse (Typprüfung, Namensauflösung, Scope- und Fehlerprüfung), eine Zwischenrepräsentation und Optimierungsphase (IR-Transformationen, konstante Auswertung, Dead-Code-Elimination) sowie das Backend (Code- bzw. Bytecode-Generierung, z.B. für WebAssembly). Diese Modularität erleichtert Entwicklung, Testbarkeit und Wiederverwendbarkeit der einzelnen Komponenten. Zusätzlich bietet diese Struktur die Möglichkeit, verschiedene Frontends (für unterschiedliche Sprachen) mit demselben Backend zu kombinieren, was die Flexibilität erhöht. Moderne Compiler sind genau entlang solcher Schritte aufgebaut @rustc-overview.
 
 == Einführung in WebAssembly
 // - WebAssembly (WASM): binäres, plattformunabhängiges Ausführungsformat.
@@ -210,11 +201,13 @@ Ein Compiler ist grundlegend in mehrere Teile unterteilt, die jeweils klar abgeg
 // - Unterstützte Sprachen: z.B. C/C++, Rust, AssemblyScript (via Compiler-Toolchains).
 // - Relevanz für Compilerbau: einheitliches Target, weniger Plattformdetails im Backend.
 
-WebAssembly (WASM) ist ein binäres, plattformunabhängiges Ausführungsformat, das ursprünglich für die Ausführung in Webbrowsern entwickelt wurde, aber inzwischen auch außerhalb des Webs, z.B. auf Servern oder in Tools, genutzt werden kann. Es zielt darauf ab, eine nahe an nativer Geschwindigkeit liegende Ausführung zu ermöglichen, während es gleichzeitig portabel und sicher bleibt. WASM-Module bestehen aus Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen. Die Ausführung erfolgt in einer Sandbox-Umgebung, wobei der Zugriff auf Systemfunktionen über Host-Imports erfolgt. WASM wird von vielen Sprachen unterstützt, darunter C/C++, Rust und AssemblyScript, die über Compiler-Toolchains in WASM übersetzt werden können. Für den Compilerbau bietet WASM eine einheitliche Zielplattform, wodurch viele plattformspezifische Details im Backend entfallen. Unter anderem deswegen ist WASM besonders attraktiv für Hobby-Compiler, da es die Komplexität der Codegenerierung reduziert und den Fokus auf die Sprachlogik und -semantik ermöglicht @mdn-wasm-concepts.
+WebAssembly (WASM) ist ein binäres, plattformunabhängiges Ausführungsformat, das ursprünglich für die Ausführung in Webbrowsern entwickelt wurde, aber inzwischen auch außerhalb des Webs, z.B. auf Servern oder in Tools, genutzt werden kann. Es zielt darauf ab, eine nahe an nativer Geschwindigkeit liegende Ausführung zu ermöglichen, während es gleichzeitig portabel und sicher bleibt. WASM-Module bestehen aus Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen, und die Ausführung erfolgt in einer Sandbox-Umgebung mit Zugriff auf Systemfunktionen über Host-Imports. WASM wird von vielen Sprachen unterstützt, darunter C/C++, Rust und AssemblyScript, die über Compiler-Toolchains in WASM übersetzt werden können @mdn-wasm-concepts.
+
+Für den Compilerbau bietet WASM eine einheitliche Zielplattform, wodurch viele plattformspezifische Details im Backend entfallen. Dadurch ist WASM besonders attraktiv für Hobby-Compiler, weil sich die Komplexität der Codegenerierung reduziert und der Fokus stärker auf Sprachlogik und Semantik liegt.
 
 Das Grundprinzip, nach dem WASM arbeitet, ist die Stack-Maschine, bei der Instruktionen primär auf einem Operand-Stack operieren. Zum Beispiel nimmt die `add`-Instruktion die obersten zwei Werte vom Stack, addiert sie und legt das Ergebnis wieder auf den Stack. Dies ermöglicht eine einfache und effiziente Ausführung von Anweisungen, da keine expliziten Register oder Speicheradressen benötigt werden @mdn-wasm-text-format; @wasm-spec.
 
-WebAssembly wird in Modulen verpackt, die Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen enthalten. Ein valides WASM-Modul muss bestimmte Regeln erfüllen, damit es von der Laufzeitumgebung akzeptiert wird. Dazu gehören ein klarer Aufbau des Moduls, die Konsistenz von Funktionssignaturen, die Korrektheit des Kontrollflusses und die Gültigkeit referenzierter Indizes. Der Validator prüft diese Regeln vor der Ausführung, und bei Verstoß wird das Modul nicht instanziiert @wasm-w3c-core; @wasm-spec. 
+WebAssembly wird in Modulen verpackt, die Funktionen, Speicher, Tabellen sowie Import- und Exportdefinitionen enthalten. Ein valides WASM-Modul muss bestimmte Regeln erfüllen, damit es von der Laufzeitumgebung akzeptiert wird. Dazu gehören ein klarer Aufbau des Moduls, die Konsistenz von Funktionssignaturen, die Korrektheit des Kontrollflusses und die Gültigkeit referenzierter Indizes. Der Validator prüft diese Regeln vor der Ausführung, und bei Verstoß wird das Modul nicht instanziiert @wasm-w3c-core; @wasm-spec.
 
 Hier ist ein Beispiel für Quellcode in unserer eigenen Sprache, der eine einfache Addition durchführt, sowie das daraus generierte WebAssembly-Textformat (WAT). Das Beispiel zeigt, wie eine Funktion `add` definiert wird, die zwei Ganzzahlen addiert, und eine `main`-Funktion, die diese Addition ausführt und das Ergebnis über eine Host-Import-Funktion `print` ausgibt.
 
@@ -267,13 +260,12 @@ Aus diesem Beispielprogramm wird folgendes WAT generiert, das die gleiche Logik 
 ]
 ]
 
-
 = Selbstversuch
 // - Ziel: Umsetzbarkeit der Theorie im eigenen Mini-Compiler prüfen
 // - Fokus: vollständige Pipeline von Quelltext bis Ausführung
 // - Ergebnisartefakte: Tokens, AST, WAT, Laufzeitausgabe
 
-Die Konzepte des Compilerbaus und die Funktionsweise von WebAssembly wurden nun theoretisch erläutert. Um die praktische Umsetzbarkeit dieser Konzepte zu überprüfen, wird im folgenden Abschnitt ein eigener Mini-Compiler entwickelt. Dieser Compiler soll eine eigens definierte, minimalistische Programmiersprache in WebAssembly-Bytecode übersetzen. Dabei wird die gesamte Pipeline von der Quelltexteingabe über die Tokenisierung, das Parsing, die semantische Analyse bis hin zur Codegenerierung und Ausführung durchlaufen. Ziel ist es, nicht nur die technischen Schritte zu demonstrieren, sondern auch konkrete Artefakte wie die erzeugten Tokens, den abstrakten Syntaxbaum (AST), das generierte WAT und die Laufzeitausgabe zu präsentieren und nachvollziehbar zu machen.
+Die Konzepte des Compilerbaus und die Funktionsweise von WebAssembly wurden nun theoretisch erläutert. Im folgenden Abschnitt wird die praktische Umsetzbarkeit dieser Konzepte mit einem eigenen Mini-Compiler überprüft, der eine eigens definierte, minimalistische Programmiersprache in WebAssembly-Bytecode übersetzt. Dabei wird die gesamte Pipeline von der Quelltexteingabe über die Tokenisierung, das Parsing und die semantische Analyse bis zur Codegenerierung und Ausführung durchlaufen. Ziel ist es, die technischen Schritte anhand konkreter Artefakte wie Token-Stream, AST, generiertem WAT und Laufzeitausgabe nachvollziehbar zu machen.
 
 == Methodik des Selbstversuchs
 
@@ -302,7 +294,7 @@ pub enum Stmt { // Mögliche Anweisungen in der Sprache
     While { cond: Expr, body: Vec<Stmt> },
 }
 
-#[derive(Debug)] 
+#[derive(Debug)]
 pub struct FunctionDecl { // Hält Signatur und Funktionskörper zusammen
     pub name: String,
     pub params: Vec<String>,
@@ -346,10 +338,7 @@ pub enum TokenKind {
 ]
 ]
 
-
-
 Beim Hauptlauf des Lexers wird der Quelltext zeichenweise durchlaufen. Zunächst werden alle Whitespace-Zeichen übersprungen, da sie für die Syntax keine Bedeutung haben. Sobald ein nicht-Whitespace-Zeichen gefunden wird, entscheidet der Lexer, ob es sich um den Beginn eines Identifiers, einer Zahl oder eines Operators handelt. Ein Identifier oder Schlüsselwort beginnt mit einem Buchstaben oder Unterstrich, gefolgt von alphanumerischen Zeichen oder Unterstrichen. Eine Zahl besteht ausschließlich aus Ziffern. Operatoren und Trennzeichen werden direkt erkannt. Sobald ein Token vollständig erkannt ist (z.B. wenn kein weiteres Zeichen mehr zum aktuellen Token passt), wird es ausgegeben.
-
 
 #figure(kind: "code", caption: [Vereinfachter Lexer-Hauptlauf (Quelle: src/lexer.rs)])[
   #code-box[
@@ -408,8 +397,7 @@ fn keyword_or_ident(text: String) -> TokenKind {
 // - Funktionen: `fn name(params) -> Int { ... }`.
 // - Block: Sequenz von Statements in `{ ... }`.
 // - Ausdrucksparser mit Präzedenzregeln für Operatoren.
-// 
-
+//
 
 Der Parser nimmt die vom Lexer erzeugte Tokenliste und baut daraus einen abstrakten Syntaxbaum (AST, Abstract Syntax Tree) auf, der die hierarchische Struktur des Programms widerspiegelt. Die in diesem Selbstversuch verwendete Strategie nennt sich rekursiver Abstieg, wobei durch Rekursion die hierarchische Natur der Sprache direkt in der Parserlogik abgebildet wird (@crafting-parsing-expr).
 
@@ -417,7 +405,7 @@ Unterschieden wird zwischen Statements, die vollständige Anweisungen darstellen
 
 === Rekursiver Abstieg
 
-So können beispielsweise Blöcke, die aus einer Sequenz von Statements bestehen, einfach durch eine Funktion `parse_block` umgesetzt werden, die so lange Statements parst, bis sie das schließende `}` findet. 
+So können beispielsweise Blöcke, die aus einer Sequenz von Statements bestehen, einfach durch eine Funktion `parse_block` umgesetzt werden, die so lange Statements parst, bis sie das schließende `}` findet.
 Der Einstiegspunkt ist die Funktion `parse_program`, die alle Funktionen im Quelltext sammelt, bis sie das End-Token (`EOF`) erreicht. Jede Funktion wird durch `fn name(params) -> Int { ... }` definiert, wobei der Rückgabetyp optional ist. Blöcke werden als Sequenzen von Statements in `{ ... }` dargestellt.
 
 #figure(kind: "code", caption: [Parser-Einstieg (`parse_program`) (vereinfacht, Quelle: src/parser.rs)])[
@@ -456,7 +444,7 @@ fn parse_block(&mut self) -> Result<Vec<Stmt>, ParseError> {
 ]
 ]
 
-=== Operator-Präzedenz 
+=== Operator-Präzedenz
 
 Um die korrekte Bindung von Operatoren zu gewährleisten, wird ein Präzedenzsystem implementiert. Dabei wird jedem Operator eine Präzedenzstufe zugeordnet, die bestimmt, in welcher Reihenfolge die Operatoren ausgewertet werden. Zum Beispiel bindet `*` stärker als `+`, sodass `1 + 2 * 3` als `1 + (2 * 3)` interpretiert wird. Dies wird durch eine Prioritätstabelle gesteuert, die die Präzedenz der Operatoren definiert. @crafting-parsing-expr
 
@@ -508,8 +496,6 @@ fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
 ]
 ]
 
-
-
 == Codegen
 // - Ziel: WASM-Bytecode erzeugen.
 // - Eigene kleine IR (`IrInstruction`) als Zwischenschicht.
@@ -519,7 +505,6 @@ fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
 
 Der Codegenerator nimmt den AST und übersetzt ihn in eine eigene Zwischenrepräsentation (IR, Intermediate Representation), die aus einer linearen Folge von Instruktionen besteht. Diese IR abstrahiert von den Details der WASM-Generierung und ermöglicht eine klarere Trennung zwischen der Logik der Codeerzeugung und den spezifischen Anforderungen des WASM-Formats. Zusätzlich erleichtert die IR spätere Optimierungen, da Transformationen nicht mehr direkt auf der Quellsyntax arbeiten müssen. Der Einsatz einer IR entspricht der Praxis großer Compiler-Infrastrukturen, wie z.B. LLVM IR als zentrale Zwischenschicht @llvm-langref.
 In diesem Fall ist die IR eine einfache Aufzählung von Instruktionen, die direkt auf den WASM-Stack operieren. Zum Beispiel wird ein `if`-Statement in der IR durch eine Sequenz von Instruktionen dargestellt, die die Bedingung evaluieren, dann eine `If`-Instruktion mit einem Blocktyp für den `then`-Teil und optional eine `Else`-Instruktion für den `else`-Teil enthält. Ähnlich wird eine `while`-Schleife durch einen `Block` und einen `Loop` mit entsprechenden Sprunginstruktionen (`BrIf`, `Br`) modelliert.
-
 
 #figure(kind: "code", caption: [IR-Instruktionen (Quelle: src/codegen/ir.rs)])[
   #code-box[
@@ -555,7 +540,7 @@ pub enum IrInstruction{
 ]
 ]
 
-Die IR wird letztendlich in echte WASM-Bytecode-Instruktionen umgewandelt, wobei die `wasm_encoder`-Bibliothek verwendet wird, um Module, Funktionen, Imports und Exports zu definieren. 
+Die IR wird letztendlich in echte WASM-Bytecode-Instruktionen umgewandelt, wobei die `wasm_encoder`-Bibliothek verwendet wird, um Module, Funktionen, Imports und Exports zu definieren.
 
 #figure(kind: "code", caption: [Funktions-Emission (Quelle: src/codegen/module.rs)])[
   #code-box[
@@ -570,12 +555,12 @@ pub fn emit_function(&mut self, func: &FunctionDecl) {
 
     // Parameter werden auf lokale Indizes gemappt
     for (i, name) in func.params.iter().enumerate() {
-        gen.local_map.insert(name.clone(), i as u32); 
+        gen.local_map.insert(name.clone(), i as u32);
     }
 
     // Statements -> IR-Instruktionen
     for stmt in &func.body {
-        emit_stmt(stmt, &mut gen, &self.func_indices); 
+        emit_stmt(stmt, &mut gen, &self.func_indices);
     }
 }
 ```
@@ -584,7 +569,7 @@ pub fn emit_function(&mut self, func: &FunctionDecl) {
 
 Die Host-Funktion `print` wird als Import unter dem Namen `env.print_i64` bereitgestellt, damit sie im generierten WASM-Modul aufgerufen werden kann und die Ausgabe von Ganzzahlen über die Konsole ermöglicht.
 == Ausführung und Beispiel
-Für diesen Selbstversuch wird der generierte WASM-Bytecode lokal mit der `wasmtime`-Laufzeit ausgeführt, anstatt ihn in einem Browser zu verwenden, auch wenn dies theoretisch möglich wäre. `wasmtime` ermöglicht das Laden von WASM-Modulen, die Instanziierung von Funktionen und den Aufruf von exportierten Funktionen wie `main`. Die Host-Funktion `print_i64` wird in Rust bereitgestellt und als Import in das WASM-Modul eingebunden, damit die `print(...)`-Funktion im generierten Code funktioniert. Der Ablauf umfasst die Umwandlung des Quelltexts in Tokens durch den eigenen Lexer, den Aufbau eines AST durch den Parser und die Generierung von WASM-Bytes durch den Codegenerator. Anschließend erfolgt die Ausführung mit Wasmtime @wasmtime-crate-docs.
+Für diesen Selbstversuch wird der generierte WASM-Bytecode lokal mit der `wasmtime`-Laufzeit ausgeführt, anstatt ihn in einem Browser zu verwenden, auch wenn dies theoretisch möglich wäre. `wasmtime` ermöglicht das Laden von WASM-Modulen, die Instanziierung von Funktionen und den Aufruf von exportierten Funktionen wie `main` @wasmtime-crate-docs; @wasmtime-hello-world. Die Host-Funktion `print_i64` wird in Rust bereitgestellt und als Import in das WASM-Modul eingebunden, damit die `print(...)`-Funktion im generierten Code funktioniert. Der Ablauf umfasst die Umwandlung des Quelltexts in Tokens durch den eigenen Lexer, den Aufbau eines AST durch den Parser und die Generierung von WASM-Bytes durch den Codegenerator. Anschließend erfolgt die Ausführung mit Wasmtime.
 
 #figure(kind: "code", caption: [WASM-Ausführung mit Wasmtime (Quelle: src/runner.rs)])[
   #code-box[
@@ -644,14 +629,10 @@ Wenn man dieses Programm mit `cargo run -- factorial.eres` ausführt, wird die A
 
 == Eigener Beitrag und verwendete Tools
 Die Eigenleistung umfasst die vollständige Implementierung eines Mini-Compilers von der Quelltextanalyse (Lexer, Parser) über die Codegenerierung bis zur Ausführung des generierten WASM-Codes. Die Sprachsyntax wurde von mir definiert, und alle Komponenten des Compilers wurden eigenständig entwickelt. Zusätzlich habe ich Testfälle erstellt, um die Funktionalität von Lexer, Parser und der Laufzeit zu validieren.
-Die verwendeten Tools umfassen die Programmiersprache Rust für die Implementierung, die `wasm-encoder`-Bibliothek für die Generierung von WASM-Bytecode, die `wasmtime`-Laufzeit für die Ausführung des generierten Codes, Git für Versionsverwaltung sowie Typst für die Erstellung dieser Facharbeit. Das zugehörige Projekt-Repository ist unter #link("https://github.com/justEres/facharbeit")[github.com/justEres/facharbeit] verfügbar. KI-Unterstützung wurde für die Strukturierung der Arbeit und das Brainstorming von Ideen genutzt, jedoch nur wenig für die eigentliche Code-Implementierung.
-
+Die verwendeten Tools umfassen die Programmiersprache Rust für die Implementierung, die `wasm-encoder`-Bibliothek für die Generierung von WASM-Bytecode, die `wasmtime`-Laufzeit für die Ausführung des generierten Codes, Git für Versionsverwaltung sowie Typst für die Erstellung dieser Facharbeit. Das zugehörige Projekt-Repository ist unter #link("https://github.com/justEres/facharbeit")[`github.com/justEres/facharbeit`] verfügbar. KI-Unterstützung wurde für die Strukturierung der Arbeit und das Brainstorming von Ideen genutzt, jedoch nur wenig für die eigentliche Code-Implementierung.
 
 == Testwerkzeuge und CLI-Nutzung
 Um die Entwicklung zu vereinfachen und die Funktionalität zu demonstrieren, wurden verschiedene Testwerkzeuge und CLI-Optionen implementiert. Die wichtigsten Befehle sind:
-
-
-
 
 Token-Ausgabe (zeigt die Arbeit des Lexers):
 #figure(kind: "code", caption: [CLI: Token-Stream prüfen (`--print-tokens`)])[
@@ -739,15 +720,12 @@ Generated WAT:
 //   [eintragen],
 // )
 
-
-
-
 = Fazit
 Um die Leitfrage zu beantworten: WebAssembly erleichtert den Bau eigener Compiler für Amateurentwickler erheblich, da es ein einheitliches Ziel bietet und viele plattformspezifische Details im Backend abstrahiert. Allerdings bleibt die Entwicklung eines Compilers eine komplexe Aufgabe, insbesondere im Frontend (Lexing, Parsing, semantische Analyse). Die Abhängigkeit von Host-Imports und der Sandbox-Umgebung von WASM kann ebenfalls Einschränkungen mit sich bringen. Insgesamt ist WASM eine vielversprechende Plattform für Hobby-Compiler, aber es erfordert dennoch ein gewisses Maß an technischem Verständnis und Aufwand.
 
 Mein persönliches Fazit ist, dass die Entwicklung dieses Mini-Compilers eine äußerst lehrreiche Erfahrung war. Sie hat mir geholfen, die theoretischen Konzepte des Compilerbaus in die Praxis umzusetzen und die Herausforderungen zu verstehen, die mit der Erstellung eines Compilers verbunden sind. Obwohl das Projekt eher ein Proof of Concept als ein produktionsreifer Compiler ist, hat es mir wertvolle Einblicke gegeben und meine Fähigkeiten im Bereich Compilerentwicklung deutlich verbessert.
 
-Die größte Herausforderung lag in der Implementierung der Parserlogik, insbesondere bei der Handhabung von Operatorpräzedenz und der Fehlerbehandlung. Auch die Codegenerierung für WASM war komplex, da ich mich mit den Details der WASM-Instruktionen und der Modulstruktur auseinandersetzen musste. Das Tooling rund um die Entwicklung eines Compilers, einschließlich Testen und Debuggen, stellte ebenfalls eine Herausforderung dar.
+Die größte Herausforderung lag in der Implementierung der Parserlogik, insbesondere bei der Handhabung von Operatorpräzedenz und der Fehlerbehandlung. Auch die Codegenerierung für WASM war anspruchsvoll, da ich mich mit den Details der WASM-Instruktionen und der Modulstruktur auseinandersetzen musste. Zusätzlich war das Tooling rund um die Compilerentwicklung, insbesondere Testen und Debuggen, zeitaufwendig.
 
 Um das Projekt weiterzuführen, wären Verbesserungen in der Fehlerdiagnostik wünschenswert, z.B. durch genauere Fehlermeldungen mit Zeilen- und Spaltenangaben sowie die Möglichkeit zur Fehlererholung. Ein weiterer Schritt wäre die Implementierung eines Typcheckers, um statische Typfehler zu erkennen. Schließlich könnte der Sprachumfang erweitert werden, um weitere Datentypen, Kontrollstrukturen oder Funktionen zu unterstützen.
 
@@ -794,7 +772,6 @@ Ausschließlich Online-Quellen, da keine gedruckten Bücher verwendet wurden. Al
 ]
 #set par(justify: true, leading: 0.95em)
 
-
 = Einsatz von KI
 
 Für die Facharbeit wurde KI als unterstützendes Hilfsmittel für Strukturierung, sprachliche Überarbeitung und Layout in Typst genutzt. Die inhaltliche Entwicklung des Selbstversuchs, der Compiler-Code und die technischen Entscheidungen wurden eigenständig erarbeitet.
@@ -813,16 +790,12 @@ Für die Facharbeit wurde KI als unterstützendes Hilfsmittel für Strukturierun
 
 = Anhang: Quellcode
 
-
-
 #metadata(none) <appendix-code-start>
 
 #outline(
   title: "Quellcode-Übersicht",
   target: heading.where(level: 3).after(<appendix-code-start>),
 )
-
-
 
 #source-file("factorial.eres", lang: "rust")
 #source-file("src/ast.rs", lang: "rust")
