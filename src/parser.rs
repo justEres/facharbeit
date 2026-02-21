@@ -127,9 +127,36 @@ mod tests {
             _ => panic!("expected let statement"),
         }
     }
+
+    #[test]
+    fn parse_return_without_expression() {
+        let src = "fn main() { return; }";
+        let tokens = lex_file(src).expect("lex");
+        let mut p = Parser::new(&tokens);
+        let program = p.parse_program().expect("parse");
+        let f = &program.functions[0];
+        assert_eq!(f.body.len(), 1);
+        match &f.body[0] {
+            Stmt::Return(None) => {}
+            _ => panic!("expected bare return"),
+        }
+    }
+
+    #[test]
+    fn parse_reports_missing_semicolon() {
+        let src = "fn main() { let x = 1 }";
+        let tokens = lex_file(src).expect("lex");
+        let mut p = Parser::new(&tokens);
+        let err = p.parse_program().expect_err("expected parse error");
+        match err {
+            ParseError::UnexpectedToken { .. } => {}
+            _ => panic!("expected UnexpectedToken"),
+        }
+    }
 }
 
 impl<'a> Parser<'a> {
+    /// Creates a parser over the token stream.
     pub fn new(tokens: &'a [Token]) -> Parser<'a> {
         Parser { tokens, pos: 0 }
     }
@@ -156,6 +183,7 @@ impl<'a> Parser<'a> {
         }
     }
 
+    /// Parses a complete program until `EOF`.
     pub fn parse_program(&mut self) -> Result<Program, ParseError> {
         let mut functions = Vec::new();
 

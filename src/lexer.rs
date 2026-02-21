@@ -25,6 +25,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Produces the next token from the input stream.
     pub fn next_token(&mut self) -> Result<Token, LexError> {
         self.skip_whitespace();
 
@@ -125,6 +126,7 @@ impl<'a> Lexer<'a> {
         })
     }
 
+    /// Lexes an integer literal starting with the already consumed first digit.
     pub fn lex_number(&mut self, first_digit: char) -> Result<TokenKind, LexError> {
         let start = self.pos - first_digit.len_utf8();
         let mut number_str = first_digit.to_string();
@@ -146,10 +148,12 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Returns true if `c` can start an identifier.
     pub fn is_ident_start(c: char) -> bool {
         c.is_ascii_alphabetic() || c == '_'
     }
 
+    /// Lexes identifiers and keywords.
     pub fn lex_ident(&mut self, first_char: char) -> TokenKind {
         let mut ident_str = first_char.to_string();
 
@@ -184,6 +188,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    /// Creates a lexer over `src`.
     pub fn new(src: &'a str) -> Self {
         Lexer {
             chars: src.chars(),
@@ -192,6 +197,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
+/// Lexes a full source file into tokens and appends an `EOF` token.
 pub fn lex_file(src: &str) -> Result<Vec<Token>, LexError> {
     let mut lexer = Lexer::new(src);
     let mut tokens = Vec::new();
@@ -214,6 +220,7 @@ pub enum LexError {
     InvalidNumber { span: Span },
 }
 
+/// Prints a human-readable lexer error.
 pub fn report_lex_error(_src: &str, error: LexError) {
     match error {
         LexError::UnexpectedChar { ch, span } => {
@@ -246,5 +253,22 @@ mod tests {
         assert!(kinds.contains(&&TokenKind::GreaterEqual));
         assert!(kinds.contains(&&TokenKind::EqualEqual));
         assert!(kinds.contains(&&TokenKind::NotEqual));
+    }
+
+    #[test]
+    fn lex_skips_single_line_comments() {
+        let src = "fn main() { // this is ignored\n return; }";
+        let tokens = lex_file(src).expect("lexing failed");
+        assert_eq!(tokens[0].kind, TokenKind::Fn);
+        assert_eq!(tokens.last().expect("missing eof").kind, TokenKind::EOF);
+    }
+
+    #[test]
+    fn lex_reports_unexpected_char() {
+        let err = lex_file("@").expect_err("expected lex error");
+        match err {
+            LexError::UnexpectedChar { ch, .. } => assert_eq!(ch, '@'),
+            _ => panic!("expected UnexpectedChar"),
+        }
     }
 }
