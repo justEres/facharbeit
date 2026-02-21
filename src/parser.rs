@@ -183,11 +183,11 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// Parses a complete program until `EOF`.
+    /// Parses a complete program until `Eof`.
     pub fn parse_program(&mut self) -> Result<Program, ParseError> {
         let mut functions = Vec::new();
 
-        while self.peek().kind != TokenKind::EOF {
+        while self.peek().kind != TokenKind::Eof {
             let func = self.parse_function()?;
             functions.push(func);
         }
@@ -197,14 +197,15 @@ impl<'a> Parser<'a> {
     fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
         self.expect(TokenKind::Fn)?;
 
-        let name = match self.bump().kind.clone() {
+        let name_tok = self.bump();
+        let name = match name_tok.kind {
             TokenKind::Ident(s) => s,
             tok => {
                 return Err(ParseError::UnexpectedToken {
                     expected: "identifier".to_string(),
                     found: Token {
                         kind: tok,
-                        span: self.peek().span.clone(),
+                        span: name_tok.span,
                     },
                 });
             }
@@ -215,12 +216,16 @@ impl<'a> Parser<'a> {
         let mut params = Vec::new();
         if self.peek().kind != TokenKind::RParen {
             loop {
-                match self.bump().kind.clone() {
+                let param_tok = self.bump();
+                match param_tok.kind {
                     TokenKind::Ident(s) => params.push(s),
-                    _ => {
+                    tok => {
                         return Err(ParseError::UnexpectedToken {
                             expected: "parameter name".to_string(),
-                            found: self.peek().clone(),
+                            found: Token {
+                                kind: tok,
+                                span: param_tok.span,
+                            },
                         });
                     }
                 }
@@ -279,12 +284,16 @@ impl<'a> Parser<'a> {
     fn parse_let(&mut self) -> Result<Stmt, ParseError> {
         self.expect(TokenKind::Let)?;
 
-        let name = match self.bump().kind.clone() {
+        let name_tok = self.bump();
+        let name = match name_tok.kind {
             TokenKind::Ident(s) => s,
-            _ => {
+            tok => {
                 return Err(ParseError::UnexpectedToken {
                     expected: "identifier".to_string(),
-                    found: self.peek().clone(),
+                    found: Token {
+                        kind: tok,
+                        span: name_tok.span,
+                    },
                 });
             }
         };
@@ -355,13 +364,7 @@ impl<'a> Parser<'a> {
         // 1. parse left-hand side primary
         let mut lhs = self.parse_primary()?;
 
-        loop {
-            // 2. check if next token is a binary operator and get its precedence
-            let (op, prec) = match self.token_to_binop_prec(&self.peek().kind) {
-                Some(x) => x,
-                None => break,
-            };
-
+        while let Some((op, prec)) = self.token_to_binop_prec(&self.peek().kind) {
             if prec < min_prec {
                 break;
             }

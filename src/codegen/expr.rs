@@ -3,23 +3,30 @@ use std::collections::HashMap;
 use crate::{
     ast::{BinOp, Expr},
     codegen::ir::IrInstruction,
-    codegen::module::FuncGen,
+    codegen::module::{CodegenError, FuncGen},
 };
 
-pub fn emit_expr(expr: &Expr, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32, bool)>) -> bool {
+pub fn emit_expr(
+    expr: &Expr,
+    r#gen: &mut FuncGen,
+    funcs: &HashMap<String, (u32, bool)>,
+) -> Result<bool, CodegenError> {
     match expr {
         Expr::Int(v) => {
             r#gen.instructions.push(IrInstruction::I64Const(*v));
-            true
+            Ok(true)
         }
         Expr::Local(name) => {
-            let idx = r#gen.local_map[name];
+            let idx = *r#gen
+                .local_map
+                .get(name)
+                .ok_or_else(|| CodegenError::UnknownLocal { name: name.clone() })?;
             r#gen.instructions.push(IrInstruction::LocalGet(idx));
-            true
+            Ok(true)
         }
         Expr::Binary { op, left, right } => {
-            let _ = emit_expr(left, r#gen, funcs);
-            let _ = emit_expr(right, r#gen, funcs);
+            let _ = emit_expr(left, r#gen, funcs)?;
+            let _ = emit_expr(right, r#gen, funcs)?;
 
             match op {
                 BinOp::Add => r#gen.instructions.push(IrInstruction::I64Add),
@@ -59,15 +66,18 @@ pub fn emit_expr(expr: &Expr, r#gen: &mut FuncGen, funcs: &HashMap<String, (u32,
                 }
             }
 
-            true
+            Ok(true)
         }
         Expr::Call { name, args } => {
             for arg in args {
-                let _ = emit_expr(arg, r#gen, funcs);
+                let _ = emit_expr(arg, r#gen, funcs)?;
             }
-            let (idx, has_ret) = funcs[name];
+            let (idx, has_ret) =
+                *funcs
+                    .get(name)
+                    .ok_or_else(|| CodegenError::UnknownFunction { name: name.clone() })?;
             r#gen.instructions.push(IrInstruction::Call(idx));
-            has_ret
+            Ok(has_ret)
         }
     }
 }

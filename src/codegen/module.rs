@@ -1,9 +1,34 @@
 use std::collections::HashMap;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 
 use crate::codegen::ir::IrInstruction;
 use wasm_encoder::*;
 
 use crate::{ast::FunctionDecl, codegen::stmt::emit_stmt};
+
+#[derive(Debug)]
+pub enum CodegenError {
+    DuplicateFunction { name: String },
+    UnknownLocal { name: String },
+    UnknownFunction { name: String },
+}
+
+impl Display for CodegenError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CodegenError::DuplicateFunction { name } => {
+                write!(f, "duplicate function declaration: `{}`", name)
+            }
+            CodegenError::UnknownLocal { name } => write!(f, "unknown local variable: `{}`", name),
+            CodegenError::UnknownFunction { name } => {
+                write!(f, "unknown function call target: `{}`", name)
+            }
+        }
+    }
+}
+
+impl Error for CodegenError {}
 
 pub struct ModuleGen {
     module: Module,
@@ -64,7 +89,13 @@ impl ModuleGen {
         self.module.finish()
     }
 
-    pub fn declare_function(&mut self, func: &FunctionDecl) {
+    pub fn declare_function(&mut self, func: &FunctionDecl) -> Result<(), CodegenError> {
+        if self.func_indices.contains_key(&func.name) {
+            return Err(CodegenError::DuplicateFunction {
+                name: func.name.clone(),
+            });
+        }
+
         let type_index = self.next_type_index;
         self.next_type_index += 1;
 
@@ -83,9 +114,10 @@ impl ModuleGen {
 
         self.functions.function(type_index);
         self.exports.export(&func.name, ExportKind::Func, idx);
+        Ok(())
     }
 
-    pub fn emit_function(&mut self, func: &FunctionDecl) {
+    pub fn emit_function(&mut self, func: &FunctionDecl) -> Result<(), CodegenError> {
         let mut r#gen = FuncGen {
             locals: Vec::new(),
             local_map: HashMap::new(),
@@ -98,7 +130,7 @@ impl ModuleGen {
         }
 
         for stmt in &func.body {
-            emit_stmt(stmt, &mut r#gen, &self.func_indices);
+            emit_stmt(stmt, &mut r#gen, &self.func_indices)?;
         }
 
         // If the function has a return type but no explicit return was emitted,
@@ -123,6 +155,7 @@ impl ModuleGen {
         wasm_func.instruction(&Instruction::End);
 
         self.codes.function(&wasm_func);
+        Ok(())
     }
 }
 

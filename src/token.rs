@@ -41,7 +41,7 @@ pub enum TokenKind {
     Arrow,
     IntType,
 
-    EOF,
+    Eof,
 }
 
 impl TokenKind {

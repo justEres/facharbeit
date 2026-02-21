@@ -35,7 +35,7 @@ impl<'a> Lexer<'a> {
             Some(c) => c,
             None => {
                 return Ok(Token {
-                    kind: TokenKind::EOF,
+                    kind: TokenKind::Eof,
                     span: Span { start, end: start },
                 });
             }
@@ -197,14 +197,14 @@ impl<'a> Lexer<'a> {
     }
 }
 
-/// Lexes a full source file into tokens and appends an `EOF` token.
+/// Lexes a full source file into tokens and appends an `Eof` token.
 pub fn lex_file(src: &str) -> Result<Vec<Token>, LexError> {
     let mut lexer = Lexer::new(src);
     let mut tokens = Vec::new();
 
     loop {
         let token = lexer.next_token()?;
-        if token.kind == TokenKind::EOF {
+        if token.kind == TokenKind::Eof {
             tokens.push(token);
             break;
         }
@@ -244,8 +244,8 @@ mod tests {
         let src = "( ) { } ; + - * / % , : -> <= < >= > == != ->";
         // include arrow twice intentionally
         let tokens = lex_file(src).expect("lexing failed");
-        // ensure EOF is last
-        assert_eq!(tokens.last().unwrap().kind, TokenKind::EOF);
+        // ensure Eof is last
+        assert_eq!(tokens.last().unwrap().kind, TokenKind::Eof);
         // Check that some known tokens appear in order (spot check)
         let kinds: Vec<_> = tokens.iter().map(|t| &t.kind).collect();
         assert!(kinds.contains(&&TokenKind::LParen));
@@ -260,7 +260,7 @@ mod tests {
         let src = "fn main() { // this is ignored\n return; }";
         let tokens = lex_file(src).expect("lexing failed");
         assert_eq!(tokens[0].kind, TokenKind::Fn);
-        assert_eq!(tokens.last().expect("missing eof").kind, TokenKind::EOF);
+        assert_eq!(tokens.last().expect("missing eof").kind, TokenKind::Eof);
     }
 
     #[test]

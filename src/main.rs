@@ -45,6 +45,10 @@ fn main() {
             eprintln!("ParseError: {:?}", e);
             return;
         }
+        Err(CompileError::Codegen(e)) => {
+            eprintln!("CodegenError: {}", e);
+            return;
+        }
     };
 
     if args.print_tokens {

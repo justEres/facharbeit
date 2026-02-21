@@ -126,4 +126,18 @@ mod tests {
         let got = printed.lock().unwrap().clone();
         assert_eq!(got, vec![3]);
     }
+
+    #[test]
+    fn compile_fails_on_unknown_local() {
+        let src = "fn main() -> Int { return missing; }";
+        let err = compile_bytes_from_src(src).expect_err("expected unknown local error");
+        assert!(err.contains("unknown local variable"));
+    }
+
+    #[test]
+    fn compile_fails_on_unknown_function_call() {
+        let src = "fn main() { foo(); return; }";
+        let err = compile_bytes_from_src(src).expect_err("expected unknown function error");
+        assert!(err.contains("unknown function call target"));
+    }
 }
