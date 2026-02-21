@@ -101,7 +101,7 @@ fn main() {
 }
 
 fn run_repl(args: &Args) {
-    println!("REPL mode. Enter full program snippets. Commands: :quit, :help");
+    println!("REPL mode. Enter expressions or full programs. Commands: :quit, :help");
     let mut line = String::new();
     loop {
         print!("eres> ");
@@ -123,18 +123,20 @@ fn run_repl(args: &Args) {
             break;
         }
         if src == ":help" {
-            println!("Enter a full program like: fn main() -> Int {{ return 1; }}");
+            println!("Expression: 1 + 2 * 3");
+            println!("Program: fn main() -> Int {{ return 1; }}");
             continue;
         }
 
-        let compile_out = match compile_source(src) {
+        let repl_src = normalize_repl_input(src);
+        let compile_out = match compile_source(&repl_src) {
             Ok(out) => out,
             Err(CompileError::Lex(e)) => {
-                report_lex_error(src, e);
+                report_lex_error(&repl_src, e);
                 continue;
             }
             Err(CompileError::Parse(e)) => {
-                report_parse_error(src, &e);
+                report_parse_error(&repl_src, &e);
                 continue;
             }
             Err(CompileError::Codegen(e)) => {
@@ -143,7 +145,24 @@ fn run_repl(args: &Args) {
             }
         };
 
-        let _ = handle_compiled_output(args, &compile_out);
+        if args.check {
+            println!("check ok");
+            continue;
+        }
+
+        let run_args = match parse_cli_i64_args(args.args.as_deref(), compile_out.main_param_count) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Argument error [E-CLI01]: {}", e);
+                continue;
+            }
+        };
+
+        match runner::run_wasm_bytes(&compile_out.bytes, run_args) {
+            Ok(Some(result)) => println!("= {}", result),
+            Ok(None) => println!("(ok)"),
+            Err(e) => eprintln!("Execution error [E-RT01]: {}", e),
+        }
     }
 }
 
@@ -225,9 +244,19 @@ fn parse_cli_i64_args(raw: Option<&str>, default_len: usize) -> Result<Vec<i64>,
     Ok(out)
 }
 
+fn normalize_repl_input(input: &str) -> String {
+    let trimmed = input.trim();
+    if trimmed.starts_with("fn ") || trimmed.starts_with("fn\t") {
+        return trimmed.to_string();
+    }
+
+    let expr = trimmed.strip_suffix(';').unwrap_or(trimmed);
+    format!("fn main() -> Int {{ return {}; }}", expr)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::parse_cli_i64_args;
+    use super::{normalize_repl_input, parse_cli_i64_args};
 
     #[test]
     fn parse_cli_i64_args_defaults_to_zeroed_main_arity() {
@@ -246,5 +275,17 @@ mod tests {
     fn parse_cli_i64_args_reports_invalid_values() {
         let err = parse_cli_i64_args(Some("1,a"), 0).expect_err("expected parse error");
         assert!(err.contains("failed to parse argument 2"));
+    }
+
+    #[test]
+    fn normalize_repl_input_wraps_expression() {
+        let got = normalize_repl_input("1 + 2 * 3");
+        assert_eq!(got, "fn main() -> Int { return 1 + 2 * 3; }");
+    }
+
+    #[test]
+    fn normalize_repl_input_keeps_function_programs() {
+        let src = "fn main() -> Int { return 7; }";
+        assert_eq!(normalize_repl_input(src), src);
     }
 }

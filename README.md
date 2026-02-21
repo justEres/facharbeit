@@ -35,10 +35,47 @@ Artefakte in Dateien schreiben:
 cargo run -- examples/add_compare.eres --emit-tokens tokens.txt --emit-ast ast.txt --emit-wat out.wat --emit-wasm out.wasm
 ```
 
-Mini-REPL (eine Zeile = ein vollständiges Programm-Snippet):
+Mini-REPL (Expressions oder vollständige Programme):
 
 ```bash
 cargo run -- --repl
+```
+
+Beispiele im REPL:
+
+```text
+eres> 1 + 2 * 3
+= 7
+
+eres> fn main() -> Int { return 40 + 2; }
+= 42
+```
+
+## CLI Beispiele
+
+Expression schnell per REPL:
+
+```bash
+cargo run -- --repl
+# dann z.B. eingeben: (8 + 2) * 5
+```
+
+Nur kompilieren/checken:
+
+```bash
+cargo run -- examples/add_compare.eres --check
+```
+
+Programm mit konkreten Argumenten ausführen:
+
+```bash
+cargo run -- examples/add_compare.eres --args "1,3"
+```
+
+WAT/WASM für Inspektion exportieren:
+
+```bash
+cargo run -- examples/add_compare.eres --emit-wat build/out.wat --emit-wasm build/out.wasm
 ```
 
 ## Projektplan
