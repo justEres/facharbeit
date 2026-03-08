@@ -66,6 +66,12 @@ Nur kompilieren/checken:
 cargo run -- examples/add_compare.eres --check
 ```
 
+Mehrere Dateien über `use` laden:
+
+```bash
+cargo run -- path/to/main.eres
+```
+
 Programm mit konkreten Argumenten ausführen:
 
 ```bash
@@ -107,13 +113,51 @@ Die Test-Assertions prüfen:
 - vollständige Kompilierung + Laufzeitresultat bei `run_*`-Dateien
 - erwartete Codegen-Limitierungen (`CodegenError`) für aktuelle Grenzen (z. B. Frontend-Features ohne Backend-Unterbau)
 
+## Module
+
+Das Sprach-Frontend unterstützt jetzt flache Dateimodule:
+
+```rust
+use "./math.eres";
+
+fn main() -> Int {
+    return helper();
+}
+```
+
+Regeln in v1:
+
+- `use` erwartet immer einen String-Pfad auf eine `.eres`-Datei
+- Pfade sind relativ zur importierenden Datei
+- importierte Top-Level-Symbole werden global in einen gemeinsamen Scope gemerged
+- doppelte Funktions-/Struct-/Enum-Namen sind harte Fehler
+- Namespaces, `mod`, Aliase und selektive Imports gibt es in dieser Phase noch nicht
+
+## Host Stdlib
+
+Die Standardbibliothek wird implizit aus Rust bereitgestellt und steht global zur Verfügung.
+Aktuell registrierte Host-Funktionen sind unter anderem:
+
+- `print(String) -> Unit`
+- `print_int(Int) -> Unit`
+- `print_float(Float) -> Unit`
+- `print_bool(Bool) -> Unit`
+- `len(String) -> Int`
+- `add_one(Int) -> Int`
+- `is_positive(Int) -> Bool`
+- `half(Float) -> Float`
+
+Die ABI dafür lebt in der Workspace-Crate `crates/eres_abi`.
+Weitere Rust-Crates können über das Makro `eres_host_function!` neue Host-Funktionen für `eres` registrieren.
+Benannte Rust-`struct`s und `enum`s können über `#[derive(EresAbi)]` in die ABI eingebunden werden.
+
 ## Type-System-Design
 
 Die Sprach-Pipeline ist jetzt:
 
 `Lexer -> Parser -> Type Checker -> Codegen`
 
-- Primitive Typen: `Int`, `Float`, `Bool`
+- Primitive Typen: `Int`, `Float`, `Bool`, `String`
 - Listen: `List<T>` (homogene variable Länge)
 - Tupel-Typen: `(Int, Float)` / `(Int, Bool, List<Int>)`
 - Referenztypen: `&T` (nur explicit, kein Auto-Referenzieren)
@@ -126,6 +170,7 @@ Listen-/Tupel-Syntax:
 
 - Listenliteral: `[1, 2, 3]`, `[]` (nur mit Zieltyp, z. B. `let xs: List<Int> = [];`)
 - Tupelliteral: `(1, 2.0, true)`
+- String-Literal: `"hello"`, inklusive einfacher Escapes wie `\n`, `\t`, `\"`
 - Tupel-Typen sind feste Länge.
 - Tupelindizierung im Typpfad über Feldzugriff: `value.0` (erstes Feld), `value.1` (zweites Feld), ...
 
@@ -177,9 +222,36 @@ fn demo(v: Result) -> Int {
 ### Aktueller Backend-Status
 
 - `Int` liegt als `i64`, `Bool` als `i32`, `Float` als `f64` in WebAssembly vor.
-- `struct`, `enum` und Referenz-Expressions (`&`, `*`) werden in dieser Phase noch als Frontend-Konzepte geführt und erzeugen bei Codegen klare Fehlermeldungen.
+- `String`, Listen, Tupel, Structs und Enums laufen an der Host-Grenze über Runtime-Handles (`i32`) mit nominaler Typprüfung.
+- String-Literale und String-Vergleiche (`==`, `!=`) werden über Runtime-Imports in Wasm eingebunden.
+- `struct`, `enum` und Referenz-Expressions (`&`, `*`) werden als sprachinterne Konstruktionen weiterhin noch nicht direkt in Wasm gelowered und erzeugen dort klare Fehlermeldungen.
 - Listen- und Tupel-Methoden (`.len()`, `.get()`, `.push()`, `.pop()`) sind Frontend-typisiert; das Codegen ist dafür noch nicht implementiert.
-- Listen und Tupel sind als Aggregate im Typ-System enthalten; sie werden aktuell über Handle-Repräsentation (`i32`) behandelt.
+- Listen und Tupel sind als Aggregate im Typ-System enthalten; Host-Funktionen können sie bereits vollständig roundtrippen.
+
+### Host-ABI-Modell
+
+- Skalare Werte bleiben direkt: `Int`, `Float`, `Bool`, `Unit`
+- Nicht-Skalare laufen als Handles: `String`, `List<T>`, Tupel, Structs, Enums
+- Benannte Typen sind nominal und werden in Rust über Typ-Deskriptoren registriert
+- Host-Funktionen können komplexe Werte lesen und neue Werte zurückgeben, ohne rohe Handles anfassen zu müssen
+
+Rust-Seite, vereinfacht:
+
+```rust
+use eres_abi::{EresAbi, eres_host_function};
+
+#[derive(Clone, EresAbi)]
+struct User {
+    name: String,
+    active: bool,
+}
+
+fn make_user() -> User {
+    User { name: "Ada".into(), active: true }
+}
+
+let host = eres_host_function!(make_user, name = "make_user", params = [], result = User);
+```
 
 ### Listen/Tupel-Beispiele
 
