@@ -1,7 +1,7 @@
 
 
 // factorial example
-fn fact(n) -> Int {
+fn fact(n: Int) -> Int {
     if (n <= 1) {
         return 1;
     } else {
@@ -9,7 +9,7 @@ fn fact(n) -> Int {
     }
 }
 
-fn main(){
+fn main() -> Int {
     print(fact(10));
-    return;
+    return 0;
 }

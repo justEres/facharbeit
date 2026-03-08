@@ -47,12 +47,20 @@ impl<'a> Lexer<'a> {
         let kind = match ch {
             '(' => TokenKind::LParen,
             ')' => TokenKind::RParen,
+            '[' => TokenKind::LBracket,
+            ']' => TokenKind::RBracket,
             '{' => TokenKind::LBrace,
             '}' => TokenKind::RBrace,
             ';' => TokenKind::Semicolon,
             '+' => TokenKind::Plus,
-            ':' => TokenKind::Colon,
-            ',' => TokenKind::Comma,
+            ':' => {
+                if let Some(':') = self.peek() {
+                    self.bump();
+                    TokenKind::DoubleColon
+                } else {
+                    TokenKind::Colon
+                }
+            }
             '>' => {
                 if let Some('=') = self.peek() {
                     self.bump();
@@ -77,24 +85,11 @@ impl<'a> Lexer<'a> {
                     TokenKind::Minus
                 }
             }
-            '*' => TokenKind::Star,
-            '/' => {
-                if let Some('/') = self.peek() {
-                    // Single-line comment
-                    while let Some(c) = self.peek() {
-                        if c == '\n' {
-                            break;
-                        }
-                        self.bump();
-                    }
-                    return self.next_token();
-                } else {
-                    TokenKind::Slash
-                }
-            }
-            '%' => TokenKind::Percentage,
             '=' => {
-                if let Some('=') = self.peek() {
+                if let Some('>') = self.peek() {
+                    self.bump();
+                    TokenKind::FatArrow
+                } else if let Some('=') = self.peek() {
                     self.bump();
                     TokenKind::EqualEqual
                 } else {
@@ -112,9 +107,33 @@ impl<'a> Lexer<'a> {
                     });
                 }
             }
+            '.' => TokenKind::Dot,
+            '*' => TokenKind::Star,
+            '/' => {
+                if let Some('/') = self.peek() {
+                    // Single-line comment
+                    while let Some(c) = self.peek() {
+                        if c == '\n' {
+                            break;
+                        }
+                        self.bump();
+                    }
+                    return self.next_token();
+                } else {
+                    TokenKind::Slash
+                }
+            }
+            '%' => TokenKind::Percentage,
+            '&' => TokenKind::Ampersand,
+            ',' => TokenKind::Comma,
+            '\'' | '"' => {
+                return Err(LexError::UnexpectedChar {
+                    ch,
+                    span: self.span_from(start),
+                });
+            }
             c if c.is_ascii_digit() => self.lex_number(c)?,
             c if Lexer::is_ident_start(c) => self.lex_ident(c),
-
             _ => {
                 return Err(LexError::UnexpectedChar {
                     ch,
@@ -129,7 +148,7 @@ impl<'a> Lexer<'a> {
         })
     }
 
-    /// Lexes an integer literal starting with the already consumed first digit.
+    /// Lexes an integer or floating-point number starting with the first consumed digit.
     pub fn lex_number(&mut self, first_digit: char) -> Result<TokenKind, LexError> {
         let start = self.pos - first_digit.len_utf8();
         let mut number_str = first_digit.to_string();
@@ -143,11 +162,36 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        match number_str.parse::<i64>() {
-            Ok(value) => Ok(TokenKind::Int(value)),
-            Err(_) => Err(LexError::InvalidNumber {
-                span: self.span_from(start),
-            }),
+        let is_float = if let Some('.') = self.peek() {
+            self.bump();
+            number_str.push('.');
+            while let Some(c) = self.peek() {
+                if c.is_ascii_digit() {
+                    number_str.push(c);
+                    self.bump();
+                } else {
+                    break;
+                }
+            }
+            true
+        } else {
+            false
+        };
+
+        if is_float {
+            match number_str.parse::<f64>() {
+                Ok(value) => Ok(TokenKind::Float(value)),
+                Err(_) => Err(LexError::InvalidNumber {
+                    span: self.span_from(start),
+                }),
+            }
+        } else {
+            match number_str.parse::<i64>() {
+                Ok(value) => Ok(TokenKind::Int(value)),
+                Err(_) => Err(LexError::InvalidNumber {
+                    span: self.span_from(start),
+                }),
+            }
         }
     }
 
@@ -176,7 +220,14 @@ impl<'a> Lexer<'a> {
             "else" => TokenKind::Else,
             "while" => TokenKind::While,
             "return" => TokenKind::Return,
+            "struct" => TokenKind::Struct,
+            "enum" => TokenKind::Enum,
+            "match" => TokenKind::Match,
             "Int" => TokenKind::IntType,
+            "Float" => TokenKind::FloatType,
+            "Bool" => TokenKind::BoolType,
+            "true" => TokenKind::True,
+            "false" => TokenKind::False,
             _ => TokenKind::Ident(ident_str),
         }
     }
@@ -221,7 +272,7 @@ pub fn lex_file(src: &str) -> Result<Vec<Token>, LexError> {
 pub enum LexError {
     /// Input contained a character that cannot start any valid token.
     UnexpectedChar { ch: char, span: Span },
-    /// Integer literal could not be parsed into the target numeric type.
+    /// Integer/float literal could not be parsed into the target numeric type.
     InvalidNumber { span: Span },
 }
 
@@ -253,7 +304,7 @@ pub fn report_lex_error(src: &str, error: LexError) {
         LexError::InvalidNumber { span } => {
             let snippet = render_snippet(src, &span);
             eprintln!(
-                "LexError [E-LX02] at line {}, column {}: invalid number literal\nhelp: use a valid 64-bit signed integer literal\n{}\n{}",
+                "LexError [E-LX02] at line {}, column {}: invalid number literal\nhelp: use a valid numeric literal\n{}\n{}",
                 snippet.line, snippet.column, snippet.source_line, snippet.marker_line
             );
         }
@@ -266,23 +317,25 @@ mod tests {
 
     #[test]
     fn lex_simple_tokens() {
-        let src = "( ) { } ; + - * / % , : -> <= < >= > == != ->";
-        // include arrow twice intentionally
+        let src = "( ) [ ] { } ; + - * / % , : -> <= < >= > == != -> & => :: .";
         let tokens = lex_file(src).expect("lexing failed");
-        // ensure Eof is last
         assert_eq!(tokens.last().unwrap().kind, TokenKind::Eof);
-        // Check that some known tokens appear in order (spot check)
         let kinds: Vec<_> = tokens.iter().map(|t| &t.kind).collect();
         assert!(kinds.contains(&&TokenKind::LParen));
+        assert!(kinds.contains(&&TokenKind::LBracket));
+        assert!(kinds.contains(&&TokenKind::RBracket));
         assert!(kinds.contains(&&TokenKind::LessEqual));
         assert!(kinds.contains(&&TokenKind::GreaterEqual));
         assert!(kinds.contains(&&TokenKind::EqualEqual));
         assert!(kinds.contains(&&TokenKind::NotEqual));
+        assert!(kinds.contains(&&TokenKind::Ampersand));
+        assert!(kinds.contains(&&TokenKind::DoubleColon));
+        assert!(kinds.contains(&&TokenKind::FatArrow));
     }
 
     #[test]
     fn lex_skips_single_line_comments() {
-        let src = "fn main() { // this is ignored\n return; }";
+        let src = "fn main() -> Int { // this is ignored\n return; }";
         let tokens = lex_file(src).expect("lexing failed");
         assert_eq!(tokens[0].kind, TokenKind::Fn);
         assert_eq!(tokens.last().expect("missing eof").kind, TokenKind::Eof);

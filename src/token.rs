@@ -8,10 +8,16 @@ pub enum TokenKind {
     Else,
     While,
     Return,
+    Struct,
+    Enum,
+    Match,
 
     // Identifiers + literals
     Ident(String),
     Int(i64),
+    Float(f64),
+    True,
+    False,
 
     // Operators
     Plus,
@@ -20,6 +26,7 @@ pub enum TokenKind {
     Slash,
     Percentage,
     Equal,
+    Ampersand,
 
     // Comparison operators
     EqualEqual,
@@ -32,15 +39,22 @@ pub enum TokenKind {
     // Delimiters
     LParen,
     RParen,
+    LBracket,
+    RBracket,
     LBrace,
     RBrace,
     Semicolon,
     Comma,
-
-    // Type hints
+    Dot,
     Colon,
+    DoubleColon,
     Arrow,
+    FatArrow,
+
+    // Type keywords
     IntType,
+    FloatType,
+    BoolType,
 
     Eof,
 }
@@ -51,6 +65,7 @@ impl TokenKind {
         match self {
             TokenKind::Ident(_) => "identifier".to_string(),
             TokenKind::Int(_) => "integer literal".to_string(),
+            TokenKind::Float(_) => "float literal".to_string(),
             _ => format!("{:?}", self),
         }
     }
