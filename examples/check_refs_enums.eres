@@ -1,0 +1,23 @@
+enum Status {
+    Ok,
+    Error(Int)
+}
+
+fn select_status(x: Int) -> Status {
+    if (x > 0) {
+        return Status::Ok;
+    } else {
+        return Status::Error(x);
+    }
+}
+
+fn main(x: Int) -> Int {
+    let code = select_status(x);
+    let matched = match code {
+        Ok => 0,
+        Error(error_code) => error_code,
+    };
+    let value = &x;
+    let doubled = *value + *value;
+    return doubled + matched;
+}

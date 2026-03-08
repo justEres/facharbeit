@@ -1,0 +1,16 @@
+struct Pair {
+    first: Int,
+    second: Int
+}
+
+fn identity_pair() -> Pair {
+    return Pair { first: 1, second: 2 };
+}
+
+fn list_tuple_demo() -> Int {
+    let values: List<Int> = [1, 2, 3, 4];
+    let head = values[0];
+    let item: (Int, Float, Bool) = (head, 2.5, false);
+    let value = item.0;
+    return value;
+}

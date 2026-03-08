@@ -1,0 +1,17 @@
+enum Expr {
+    Zero,
+    One(Int),
+    Pair(Int)
+}
+
+fn score(expr: Expr) -> Int {
+    return match expr {
+        Zero => 0,
+        One(v) => v,
+        Pair(value) => value + 1,
+    };
+}
+
+fn main() -> Int {
+    return score(Expr::Pair(3));
+}

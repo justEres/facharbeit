@@ -78,6 +78,120 @@ WAT/WASM für Inspektion exportieren:
 cargo run -- examples/add_compare.eres --emit-wat build/out.wat --emit-wasm build/out.wasm
 ```
 
+## Beispiele im `examples`-Ordner
+
+Im `examples/`-Ordner stehen aktuell sowohl vollständige Laufzeitbeispiele als auch reine Type-System-Validierungsbeispiele:
+
+- `add_compare.eres` (Legacy-Beispiel, weiterhin nutzbar)
+- `run_arith.eres`
+- `run_float_cond.eres`
+- `check_refs_enums.eres`
+- `check_aggregates.eres`
+- `check_match.eres`
+
+Konventionen:
+
+- `run_*.eres`: werden vollständig über `compile_source` kompiliert und ausgeführt.
+- `check_*.eres`: werden mit `compile_source_check` validiert (Frontend-only).
+
+Tests zum schnellen Durchlauf:
+
+```bash
+cargo test compile_examples_check_pass
+cargo test compile_examples_runtime
+cargo test
+```
+
+Die Test-Assertions prüfen:
+- Parsing/Typprüfung bei `check_*`-Dateien
+- vollständige Kompilierung + Laufzeitresultat bei `run_*`-Dateien
+- erwartete Codegen-Limitierungen (`CodegenError`) für aktuelle Grenzen (z. B. Frontend-Features ohne Backend-Unterbau)
+
+## Type-System-Design
+
+Die Sprach-Pipeline ist jetzt:
+
+`Lexer -> Parser -> Type Checker -> Codegen`
+
+- Primitive Typen: `Int`, `Float`, `Bool`
+- Listen: `List<T>` (homogene variable Länge)
+- Tupel-Typen: `(Int, Float)` / `(Int, Bool, List<Int>)`
+- Referenztypen: `&T` (nur explicit, kein Auto-Referenzieren)
+- Funktions-Typen: `fn(Int, Float) -> Bool`
+- Sum-Typen: `enum Name { A, B(T), C { x: T } }`
+- Aggregierte Typen: `struct Name { x: T, y: T }`
+- Listen-Methoden (Front-End): `xs.len()`, `xs.get(i)`, `xs.push(v)`, `xs.pop()`
+
+Listen-/Tupel-Syntax:
+
+- Listenliteral: `[1, 2, 3]`, `[]` (nur mit Zieltyp, z. B. `let xs: List<Int> = [];`)
+- Tupelliteral: `(1, 2.0, true)`
+- Tupel-Typen sind feste Länge.
+- Tupelindizierung im Typpfad über Feldzugriff: `value.0` (erstes Feld), `value.1` (zweites Feld), ...
+
+### Explizite Referenzen + Auto-Deref
+
+- Referenzbildung erfolgt mit `&expr` und Dereferenzierung mit `*expr`.
+- Übergaben sind explizit: `&x` für `&T`, nicht `x`.
+- Der Type Checker erlaubt Auto-Deref, wenn eine Referenz dort sitzt, wo ein Wert erwartet wird.
+- Auto-Deref wird auch in Initialisierungen (z. B. Struct/Enum Payloads) und bei Rückgabe-/Funktionsargumenten angewendet.
+- `[]` ohne Typkontext ist ein Typfehler (`TypeError`).
+
+Beispiel:
+
+```rust
+fn inc(x: Int) -> Int { return x + 1; }
+
+fn main() -> Int {
+    let x: Int = 41;
+    let p = &x;
+    let y = *p;   // erlaubt, weil `Int` erwartet wird
+    return inc(y);
+}
+```
+
+### Structs / Enums / Match
+
+```rust
+enum Result {
+    Ok,
+    Err(Int),
+    Pair { x: Int, y: Float }
+}
+
+fn demo(v: Result) -> Int {
+    return match v {
+        Ok => 1,
+        Err(code) => code,
+        Pair { x, y } => x,
+    };
+}
+```
+
+`match` prüft:
+
+- alle Pattern referenzieren echte Varianten
+- die Anzahl der Varianten ist vollständig (`non-exhaustive` wird verhindert)
+- alle Arm-Typen sind konsistent
+
+### Aktueller Backend-Status
+
+- `Int` liegt als `i64`, `Bool` als `i32`, `Float` als `f64` in WebAssembly vor.
+- `struct`, `enum` und Referenz-Expressions (`&`, `*`) werden in dieser Phase noch als Frontend-Konzepte geführt und erzeugen bei Codegen klare Fehlermeldungen.
+- Listen- und Tupel-Methoden (`.len()`, `.get()`, `.push()`, `.pop()`) sind Frontend-typisiert; das Codegen ist dafür noch nicht implementiert.
+- Listen und Tupel sind als Aggregate im Typ-System enthalten; sie werden aktuell über Handle-Repräsentation (`i32`) behandelt.
+
+### Listen/Tupel-Beispiele
+
+```rust
+fn head(x: List<Int>) -> Int { return x[0]; }
+fn head2(x: List<Int>) -> Int { return x.get(0); }
+
+fn meta(x: (Int, Float)) -> Int { return x.0; }
+
+fn pair() -> (Int, Float) { return (1, 2.0); }
+```
+
 ## Projektplan
 
 ### Phase 1: Aufräumen und Grundlage stabilisieren

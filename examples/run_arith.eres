@@ -1,0 +1,8 @@
+fn main(a: Int, b: Int, c: Int) -> Int {
+    let total = a + b + c;
+    if (total > 10) {
+        return total;
+    } else {
+        return 0;
+    }
+}

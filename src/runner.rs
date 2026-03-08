@@ -36,10 +36,10 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
         .map_err(|e| format!("runtime error: {}", e))?;
 
     if results == 1 {
-        if let Val::I64(v) = results_buf[0] {
-            Ok(Some(v))
-        } else {
-            Err("unexpected return value type".to_string())
+        match results_buf[0] {
+            Val::I64(v) => Ok(Some(v)),
+            Val::I32(v) => Ok(Some(v as i64)),
+            _ => Err("unexpected return value type".to_string()),
         }
     } else {
         Ok(None)
@@ -49,6 +49,7 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
     use crate::compiler::compile_source;
 
     fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
@@ -62,14 +63,14 @@ mod tests {
 
     #[test]
     fn run_if_gt_sample() {
-        let src = "fn main(x, y) -> Int { if (x > 5) { return 1; } else { return 0; } }";
+        let src = "fn main(x: Int, y: Int) -> Int { if (x > 5) { return 1; } else { return 0; } }";
         let res = run_source(src, vec![64, 8]).expect("run failed");
         assert_eq!(res, Some(1));
     }
 
     #[test]
     fn run_add_compare() {
-        let src = "fn main(a, b) -> Int { let z = a + 1 < b; return z; }";
+        let src = "fn main(a: Int, b: Int) -> Bool { return a + 1 < b; }";
         // a=1, b=3 -> 1+1 < 3 -> true -> 1
         let res = run_source(src, vec![1, 3]).expect("run failed");
         assert_eq!(res, Some(1));
@@ -77,22 +78,41 @@ mod tests {
 
     #[test]
     fn run_parenthesized_complex() {
-        let src = "fn main(a,b,c,d) -> Int { let r = (a + b) <= (c - d); return r; }";
+        let src = "fn main(a: Int, b: Int, c: Int, d: Int) -> Bool { let r = (a + b) <= (c - d); return r; }";
         // Wrong arity should return an error.
         let _res =
             run_source(src, vec![1, 1]).expect_err("expected error because missing c,d args");
 
-        let src2 = "fn main(a,b,c,d) -> Int { let r = (a + b) <= (c - d); return r; }";
+        let src2 = "fn main(a: Int, b: Int, c: Int, d: Int) -> Bool { let r = (a + b) <= (c - d); return r; }";
         let bytes = compile_bytes_from_src(src2).expect("compile failed");
         let out =
             run_wasm_bytes(&bytes, vec![2, 1]).expect_err("expected error due to wrong arg count");
         let _ = out;
     }
 
+    fn read_example(path: &str) -> String {
+        fs::read_to_string(path).unwrap_or_else(|e| panic!("unable to read {}: {}", path, e))
+    }
+
+    #[test]
+    fn run_examples_runtime() {
+        let cases = vec![
+            ("examples/run_arith.eres", vec![2, 4, 6], Some(12)),
+            ("examples/run_float_cond.eres", vec![], Some(1)),
+        ];
+
+        for (path, args, expected) in cases {
+            let src = read_example(path);
+            let bytes = compile_source(&src).map(|out| out.bytes).expect("compile failed");
+            let out = run_wasm_bytes(&bytes, args).expect("execution failed");
+            assert_eq!(out, expected, "failed runtime example {}", path);
+        }
+    }
+
     #[test]
     fn print_statement_outputs() {
         // inline source instead of reading a file
-        let src = "fn main(){ print(3); return; }";
+        let src = "fn main() -> Int { print(3); return 0; }";
 
         let bytes = compile_bytes_from_src(src).expect("compile failed");
 
@@ -115,7 +135,13 @@ mod tests {
             .get_func(&mut store, "main")
             .expect("main not found");
         let params: Vec<Val> = Vec::new();
-        let mut results_buf: Vec<Val> = Vec::new();
+        let result_count = func
+            .ty(&mut store)
+            .results()
+            .len()
+            .try_into()
+            .expect("result count conversion");
+        let mut results_buf: Vec<Val> = vec![Val::I64(0); result_count];
 
         func.call(&mut store, &params, &mut results_buf)
             .expect("call failed");
@@ -128,33 +154,33 @@ mod tests {
     fn compile_fails_on_unknown_local() {
         let src = "fn main() -> Int { return missing; }";
         let err = compile_bytes_from_src(src).expect_err("expected unknown local error");
-        assert!(err.contains("unknown local variable"));
+        assert!(err.contains("unknown variable"));
     }
 
     #[test]
     fn compile_fails_on_unknown_function_call() {
-        let src = "fn main() { foo(); return; }";
+        let src = "fn main() -> Int { foo(); return 0; }";
         let err = compile_bytes_from_src(src).expect_err("expected unknown function error");
-        assert!(err.contains("unknown function call target"));
+        assert!(err.contains("unknown function `foo`"));
     }
 
     #[test]
     fn run_if_else_control_flow() {
-        let src = "fn main() -> Int { if 0 { return 1; } else { return 7; } }";
+        let src = "fn main() -> Int { if false { return 1; } else { return 7; } }";
         let res = run_source(src, vec![]).expect("run failed");
         assert_eq!(res, Some(7));
     }
 
     #[test]
     fn run_while_skips_body_when_false() {
-        let src = "fn main() -> Int { while 0 { return 1; } return 2; }";
+        let src = "fn main() -> Int { while false { return 1; } return 2; }";
         let res = run_source(src, vec![]).expect("run failed");
         assert_eq!(res, Some(2));
     }
 
     #[test]
     fn run_early_return_in_if() {
-        let src = "fn main() -> Int { if 1 { return 9; } return 1; }";
+        let src = "fn main() -> Int { if true { return 9; } return 1; }";
         let res = run_source(src, vec![]).expect("run failed");
         assert_eq!(res, Some(9));
     }
