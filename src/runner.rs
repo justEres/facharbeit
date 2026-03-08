@@ -336,6 +336,7 @@ mod tests {
         let cases = vec![
             ("examples/run_arith.eres", vec![2, 4, 6], Some(12)),
             ("examples/run_float_cond.eres", vec![], Some(1)),
+            ("examples/run_strings.eres", vec![], Some(6)),
         ];
 
         for (path, args, expected) in cases {
@@ -426,6 +427,14 @@ mod tests {
 
         let result = run_wasm_bytes_with_hosts(&bytes, vec![], &hosts).expect("run failed");
         assert_eq!(result, Some(13));
+    }
+
+    #[test]
+    fn module_string_example_runs() {
+        let out = crate::compiler::compile_entry_file("examples/module_strings_main.eres")
+            .expect("compile failed");
+        let result = run_wasm_bytes(&out.bytes, vec![]).expect("run failed");
+        assert_eq!(result, Some(6));
     }
 
     #[test]

@@ -1,0 +1,27 @@
+struct User {
+    name: String,
+    tags: List<String>
+}
+
+enum ResultTag {
+    Guest,
+    Named(String),
+    Meta { label: String, ok: Bool }
+}
+
+fn is_named(tag: ResultTag) -> Bool {
+    return match tag {
+        Guest => false,
+        Named(name) => name == "guest",
+        Meta { label, ok } => ok != (label == ""),
+    };
+}
+
+fn main() -> Bool {
+    let words: List<String> = ["guest", "admin"];
+    let pair: (String, Bool) = ("guest", true);
+    let user = User { name: "Ada", tags: words };
+    let tag = ResultTag::Named(pair.0);
+    let _: User = user;
+    return is_named(tag) == pair.1;
+}

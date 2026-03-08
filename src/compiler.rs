@@ -243,6 +243,7 @@ mod tests {
             "examples/check_refs_enums.eres",
             "examples/check_aggregates.eres",
             "examples/check_match.eres",
+            "examples/check_strings.eres",
         ];
 
         for path in checks {
@@ -258,6 +259,7 @@ mod tests {
             "examples/check_refs_enums.eres",
             "examples/check_aggregates.eres",
             "examples/check_match.eres",
+            "examples/check_strings.eres",
         ];
 
         for path in checks {
@@ -292,5 +294,14 @@ mod tests {
         assert_eq!(out.loaded_files.len(), 2);
         let result = crate::runner::run_wasm_bytes(&out.bytes, vec![]).expect("run failed");
         assert_eq!(result, Some(2));
+    }
+
+    #[test]
+    fn compile_real_module_string_example() {
+        let out = compile_entry_file("examples/module_strings_main.eres")
+            .expect("compile module string example failed");
+        assert_eq!(out.loaded_files.len(), 2);
+        let result = crate::runner::run_wasm_bytes(&out.bytes, vec![]).expect("run failed");
+        assert_eq!(result, Some(6));
     }
 }

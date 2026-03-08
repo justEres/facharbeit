@@ -1,0 +1,7 @@
+fn helper_name() -> String {
+    return "module";
+}
+
+fn helper_len() -> Int {
+    return len(helper_name());
+}

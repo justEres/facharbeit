@@ -212,6 +212,24 @@ mod tests {
     }
 
     #[test]
+    fn parse_string_type_annotations() {
+        let src = "fn greet(name: String) -> String { return \"hi\"; }";
+        let tokens = lex_file(src).expect("lex");
+        let mut p = Parser::new(&tokens);
+        let program = p.parse_program().expect("parse");
+        let f = program
+            .items
+            .iter()
+            .find_map(|i| match i {
+                TopLevelDecl::Function(func) => Some(func),
+                _ => None,
+            })
+            .expect("function missing");
+        assert_eq!(f.params[0].ty, Type::String);
+        assert_eq!(f.return_type, Type::String);
+    }
+
+    #[test]
     fn parse_list_and_tuple_literals() {
         let src = "fn f() -> Int { let xs = [1, 2, 3]; let t = (1, true); let s = \"hi\"; return 1; }";
         let tokens = lex_file(src).expect("lex");

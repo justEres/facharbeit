@@ -1340,4 +1340,16 @@ mod tests {
         let src = "fn main() -> Int { let xs = []; return 0; }";
         assert!(type_check(src).is_err());
     }
+
+    #[test]
+    fn string_equality_typechecks() {
+        let src = "fn main() -> Bool { return \"a\" == \"b\"; }";
+        assert!(type_check(src).is_ok());
+    }
+
+    #[test]
+    fn string_arithmetic_is_rejected() {
+        let src = "fn main() -> String { return \"a\" + \"b\"; }";
+        assert!(type_check(src).is_err());
+    }
 }

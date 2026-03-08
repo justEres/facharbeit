@@ -1,0 +1,9 @@
+use "./module_strings_helper.eres";
+
+fn main() -> Int {
+    if helper_name() == "module" {
+        return helper_len();
+    } else {
+        return 0;
+    }
+}

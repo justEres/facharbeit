@@ -397,4 +397,12 @@ mod tests {
         assert_eq!(tokens[0].kind, TokenKind::Use);
         assert_eq!(tokens[1].kind, TokenKind::StringLit("./foo.eres".to_string()));
     }
+
+    #[test]
+    fn lex_string_literal_with_escapes() {
+        let tokens = lex_file("let s = \"line\\n\\t\\\"quoted\\\"\";").expect("lexing failed");
+        assert!(tokens
+            .iter()
+            .any(|token| token.kind == TokenKind::StringLit("line\n\t\"quoted\"".to_string())));
+    }
 }

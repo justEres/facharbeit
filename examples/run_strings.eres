@@ -1,0 +1,8 @@
+fn main() -> Int {
+    print("hello from eres");
+    if "abc" == "abc" {
+        return len("abcdef");
+    } else {
+        return 0;
+    }
+}

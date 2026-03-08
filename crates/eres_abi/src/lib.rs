@@ -713,6 +713,12 @@ mod tests {
     }
 
     #[derive(Debug, Clone, PartialEq, EresAbi)]
+    struct OtherUser {
+        name: String,
+        active: bool,
+    }
+
+    #[derive(Debug, Clone, PartialEq, EresAbi)]
     enum Tag {
         Guest,
         Name(String),
@@ -752,5 +758,35 @@ mod tests {
         let decoded =
             <(String, Vec<i64>, (bool, i64))>::from_eres_value(&encoded, &heap).expect("decode");
         assert_eq!(decoded, tuple);
+    }
+
+    #[test]
+    fn nominal_struct_types_do_not_cross_decode() {
+        let mut heap = RuntimeHeap::default();
+        let encoded = User {
+            name: "Ada".to_string(),
+            active: true,
+        }
+        .into_eres_value(&mut heap)
+        .expect("encode user");
+
+        let err = OtherUser::from_eres_value(&encoded, &heap).expect_err("expected nominal mismatch");
+        assert!(err.contains("expected struct type OtherUser"));
+    }
+
+    #[test]
+    fn host_function_macro_collects_named_type_descriptors() {
+        fn make_user() -> User {
+            User {
+                name: "Ada".to_string(),
+                active: true,
+            }
+        }
+
+        let host = eres_host_function!(make_user, name = "make_user", params = [], result = User);
+        assert!(host
+            .descriptors
+            .iter()
+            .any(|descriptor| descriptor.named.name == "User"));
     }
 }
