@@ -24,6 +24,20 @@ pub struct SymbolInfo {
     pub span: Span,
 }
 
+#[derive(Debug, Clone)]
+pub struct DefinitionInfo {
+    pub name: String,
+    pub kind: SymbolKind,
+    pub target_span: Span,
+}
+
+#[derive(Debug, Clone)]
+pub struct CompletionItemInfo {
+    pub label: String,
+    pub kind: SymbolKind,
+    pub detail: String,
+}
+
 #[derive(Debug)]
 pub struct CheckedSource {
     pub tokens: Vec<Token>,
@@ -43,6 +57,8 @@ pub struct FunctionSymbol {
     pub name_span: Span,
     pub full_span: Span,
     pub body_span: Span,
+    pub params: HashMap<String, Span>,
+    pub locals: HashMap<String, Span>,
     pub signature: String,
 }
 
@@ -92,10 +108,7 @@ pub fn analyze_diagnostic(source: &str) -> Option<AnalysisDiagnostic> {
 
 pub fn symbol_at(source: &str, offset: usize) -> Result<Option<SymbolInfo>, CompileError> {
     let checked = check(source)?;
-    let token = checked
-        .tokens
-        .iter()
-        .find(|token| matches!(token.kind, TokenKind::Ident(_)) && span_contains(&token.span, offset));
+    let token = find_ident_at_offset(&checked.tokens, offset);
 
     let Some(token) = token else {
         return Ok(None);
@@ -164,6 +177,118 @@ pub fn symbol_at(source: &str, offset: usize) -> Result<Option<SymbolInfo>, Comp
     Ok(None)
 }
 
+pub fn definition_at(source: &str, offset: usize) -> Result<Option<DefinitionInfo>, CompileError> {
+    let checked = check(source)?;
+    let token = find_ident_at_offset(&checked.tokens, offset);
+    let Some(token) = token else {
+        return Ok(None);
+    };
+
+    let TokenKind::Ident(name) = &token.kind else {
+        return Ok(None);
+    };
+
+    let index = SymbolIndex::from_tokens(&checked.tokens, &checked.program);
+
+    if let Some(function_name) = index.function_name_for_offset(offset)
+        && let Some(function) = index.functions.get(function_name)
+    {
+        if let Some(span) = function.params.get(name) {
+            return Ok(Some(DefinitionInfo {
+                name: name.clone(),
+                kind: SymbolKind::Parameter,
+                target_span: span.clone(),
+            }));
+        }
+        if let Some(span) = function.locals.get(name) {
+            return Ok(Some(DefinitionInfo {
+                name: name.clone(),
+                kind: SymbolKind::Local,
+                target_span: span.clone(),
+            }));
+        }
+    }
+
+    if let Some(function) = index.functions.get(name) {
+        return Ok(Some(DefinitionInfo {
+            name: name.clone(),
+            kind: SymbolKind::Function,
+            target_span: function.name_span.clone(),
+        }));
+    }
+
+    if let Some(span) = index.structs.get(name) {
+        return Ok(Some(DefinitionInfo {
+            name: name.clone(),
+            kind: SymbolKind::Struct,
+            target_span: span.clone(),
+        }));
+    }
+
+    if let Some(span) = index.enums.get(name) {
+        return Ok(Some(DefinitionInfo {
+            name: name.clone(),
+            kind: SymbolKind::Enum,
+            target_span: span.clone(),
+        }));
+    }
+
+    Ok(None)
+}
+
+pub fn completions_at(source: &str, offset: usize) -> Result<Vec<CompletionItemInfo>, CompileError> {
+    let checked = check(source)?;
+    let index = SymbolIndex::from_tokens(&checked.tokens, &checked.program);
+    let mut items = Vec::new();
+
+    if let Some(function_name) = index.function_name_for_offset(offset)
+        && let Some(function) = checked.typed.function_infos.get(function_name)
+    {
+        for param in &function.params {
+            items.push(CompletionItemInfo {
+                label: param.name.clone(),
+                kind: SymbolKind::Parameter,
+                detail: format!("{}: {}", param.name, param.ty),
+            });
+        }
+        for (name, ty) in &function.locals {
+            items.push(CompletionItemInfo {
+                label: name.clone(),
+                kind: SymbolKind::Local,
+                detail: format!("{}: {}", name, ty),
+            });
+        }
+    }
+
+    for function in index.functions.values() {
+        items.push(CompletionItemInfo {
+            label: function.name.clone(),
+            kind: SymbolKind::Function,
+            detail: function.signature.clone(),
+        });
+    }
+
+    for (name, def) in &checked.typed.structs {
+        items.push(CompletionItemInfo {
+            label: name.clone(),
+            kind: SymbolKind::Struct,
+            detail: format_struct_decl(def),
+        });
+    }
+
+    for (name, def) in &checked.typed.enums {
+        items.push(CompletionItemInfo {
+            label: name.clone(),
+            kind: SymbolKind::Enum,
+            detail: format_enum_decl(def),
+        });
+    }
+
+    items.sort_by(|left, right| left.label.cmp(&right.label).then(left.detail.cmp(&right.detail)));
+    items.dedup_by(|left, right| left.label == right.label && left.kind == right.kind);
+    Ok(items)
+}
+
 impl SymbolIndex {
     pub fn from_tokens(tokens: &[Token], program: &Program) -> Self {
         let mut functions = HashMap::new();
@@ -185,21 +310,15 @@ impl SymbolIndex {
         while idx < tokens.len() {
             match &tokens[idx].kind {
                 TokenKind::Fn => {
-                    if let Some((name, name_span, full_span, body_span)) = scan_function(tokens, idx) {
+                    if let Some(symbol) = scan_function(tokens, idx) {
                         let signature = function_signatures
-                            .get(&name)
+                            .get(&symbol.name)
                             .cloned()
-                            .unwrap_or_else(|| format!("fn {}", name));
-                        functions.insert(
-                            name.clone(),
-                            FunctionSymbol {
-                                name,
-                                name_span,
-                                full_span,
-                                body_span,
-                                signature,
-                            },
-                        );
+                            .unwrap_or_else(|| format!("fn {}", symbol.name));
+                        functions.insert(symbol.name.clone(), FunctionSymbol {
+                            signature,
+                            ..symbol
+                        });
                     }
                 }
                 TokenKind::Struct => {
@@ -235,7 +354,7 @@ impl SymbolIndex {
     }
 }
 
-fn scan_function(tokens: &[Token], fn_idx: usize) -> Option<(String, Span, Span, Span)> {
+fn scan_function(tokens: &[Token], fn_idx: usize) -> Option<FunctionSymbol> {
     let (name, name_span) = next_ident(tokens, fn_idx + 1)?;
     let body_start_idx = tokens[fn_idx..]
         .iter()
@@ -250,7 +369,15 @@ fn scan_function(tokens: &[Token], fn_idx: usize) -> Option<(String, Span, Span,
         start: tokens[body_start_idx].span.start,
         end: tokens[body_end_idx].span.end,
     };
-    Some((name, name_span, full_span, body_span))
+    Some(FunctionSymbol {
+        name,
+        name_span,
+        full_span: full_span.clone(),
+        body_span,
+        params: scan_params(tokens, fn_idx, body_start_idx),
+        locals: scan_locals(tokens, body_start_idx, body_end_idx),
+        signature: String::new(),
+    })
 }
 
 fn find_matching_brace(tokens: &[Token], open_idx: usize) -> Option<usize> {
@@ -275,6 +402,52 @@ fn next_ident(tokens: &[Token], start_idx: usize) -> Option<(String, Span)> {
         TokenKind::Ident(name) => Some((name.clone(), token.span.clone())),
         _ => None,
     })
+}
+
+fn find_ident_at_offset(tokens: &[Token], offset: usize) -> Option<&Token> {
+    tokens.iter().find(|token| {
+        matches!(token.kind, TokenKind::Ident(_))
+            && (span_contains(&token.span, offset)
+                || (token.span.end == offset && token.span.start < token.span.end))
+    })
+}
+
+fn scan_params(tokens: &[Token], fn_idx: usize, body_start_idx: usize) -> HashMap<String, Span> {
+    let mut params = HashMap::new();
+    let mut paren_depth = 0usize;
+
+    for token_idx in fn_idx..body_start_idx {
+        match &tokens[token_idx].kind {
+            TokenKind::LParen => paren_depth += 1,
+            TokenKind::RParen => paren_depth = paren_depth.saturating_sub(1),
+            TokenKind::Ident(name)
+                if paren_depth == 1
+                    && tokens
+                        .get(token_idx + 1)
+                        .is_some_and(|next| next.kind == TokenKind::Colon) =>
+            {
+                params.insert(name.clone(), tokens[token_idx].span.clone());
+            }
+            _ => {}
+        }
+    }
+
+    params
+}
+
+fn scan_locals(tokens: &[Token], body_start_idx: usize, body_end_idx: usize) -> HashMap<String, Span> {
+    let mut locals = HashMap::new();
+
+    for token_idx in body_start_idx..body_end_idx {
+        if tokens[token_idx].kind == TokenKind::Let
+            && let Some(token) = tokens.get(token_idx + 1)
+            && let TokenKind::Ident(name) = &token.kind
+        {
+            locals.insert(name.clone(), token.span.clone());
+        }
+    }
+
+    locals
 }
 
 fn format_function_signature(name: &str, params: &[Param], return_type: &Type) -> String {
@@ -340,7 +513,7 @@ fn parse_error_span(error: &ParseError) -> Span {
 
 #[cfg(test)]
 mod tests {
-    use super::{SymbolKind, analyze_diagnostic, check, symbol_at};
+    use super::{SymbolKind, analyze_diagnostic, check, completions_at, definition_at, symbol_at};
 
     #[test]
     fn hover_finds_local_variable_type() {
@@ -392,6 +565,40 @@ mod tests {
         let symbol = symbol_at(src, offset).expect("analysis failed").expect("missing symbol");
         assert_eq!(symbol.kind, SymbolKind::Enum);
         assert_eq!(symbol.detail, "enum Result { Ok, Err(Int) }");
+    }
+
+    #[test]
+    fn definition_finds_local_declaration() {
+        let src = "fn main(x: Int) -> Int { let y = x; return y; }";
+        let offset = src.rfind("y").expect("missing y");
+        let definition = definition_at(src, offset)
+            .expect("analysis failed")
+            .expect("missing definition");
+        assert_eq!(definition.kind, SymbolKind::Local);
+        assert_eq!(&src[definition.target_span.start..definition.target_span.end], "y");
+        assert_eq!(src.find("let y").expect("missing let y") + 4, definition.target_span.start);
+    }
+
+    #[test]
+    fn definition_finds_function_name() {
+        let src = "fn inc(x: Int) -> Int { return x; } fn main() -> Int { return inc(1); }";
+        let offset = src.rfind("inc").expect("missing inc");
+        let definition = definition_at(src, offset)
+            .expect("analysis failed")
+            .expect("missing definition");
+        assert_eq!(definition.kind, SymbolKind::Function);
+        assert_eq!(src.find("inc").expect("missing definition inc"), definition.target_span.start);
+    }
+
+    #[test]
+    fn completions_include_scope_and_globals() {
+        let src = "struct Point { x: Int } fn helper(v: Int) -> Int { return v; } fn main(x: Int) -> Int { let y = x; return y; }";
+        let offset = src.find("return y").expect("missing return y");
+        let completions = completions_at(src, offset).expect("analysis failed");
+        assert!(completions.iter().any(|item| item.label == "x" && item.kind == SymbolKind::Parameter));
+        assert!(completions.iter().any(|item| item.label == "y" && item.kind == SymbolKind::Local));
+        assert!(completions.iter().any(|item| item.label == "helper" && item.kind == SymbolKind::Function));
+        assert!(completions.iter().any(|item| item.label == "Point" && item.kind == SymbolKind::Struct));
     }
 
     #[test]

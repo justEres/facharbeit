@@ -30,6 +30,16 @@ The extension starts the language server in one of two ways:
   - parameters and locals with inferred/declared types
   - structs with field types
   - enums with variant shapes
+- Go to Definition for:
+  - functions
+  - parameters
+  - local variables
+  - structs and enums
+- Completion for:
+  - functions
+  - parameters
+  - local variables
+  - structs and enums
 
 ## Logs
 

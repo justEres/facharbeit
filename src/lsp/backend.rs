@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use tokio::sync::RwLock;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
+    CompletionItem, CompletionItemKind, CompletionOptions, CompletionParams, CompletionResponse,
+    GotoDefinitionParams, GotoDefinitionResponse, Location,
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, Hover, HoverContents, HoverParams, HoverProviderCapability,
     InitializeParams, InitializeResult, LanguageString, MarkedString, MessageType, Position,
@@ -12,7 +14,7 @@ use tower_lsp::lsp_types::{
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-use crate::analysis::{SymbolKind, analyze_diagnostic, symbol_at};
+use crate::analysis::{SymbolKind, analyze_diagnostic, completions_at, definition_at, symbol_at};
 use crate::lsp::source_map::SourceMap;
 use crate::token::Span;
 
@@ -85,6 +87,8 @@ impl LanguageServer for Backend {
                     TextDocumentSyncKind::FULL,
                 )),
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
+                definition_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
+                completion_provider: Some(CompletionOptions::default()),
                 ..ServerCapabilities::default()
             },
             ..InitializeResult::default()
@@ -171,6 +175,67 @@ impl LanguageServer for Backend {
             range: Some(span_to_range(symbol.span, &document.source_map)),
         }))
     }
+
+    async fn goto_definition(
+        &self,
+        params: GotoDefinitionParams,
+    ) -> Result<Option<GotoDefinitionResponse>> {
+        let text_document_position = params.text_document_position_params;
+        let uri = text_document_position.text_document.uri;
+        let position = text_document_position.position;
+
+        let docs = self.documents.read().await;
+        let Some(document) = docs.get(&uri) else {
+            return Ok(None);
+        };
+        let offset = document
+            .source_map
+            .position_to_offset(position.line, position.character);
+
+        let definition = match definition_at(&document.source, offset) {
+            Ok(definition) => definition,
+            Err(_) => return Ok(None),
+        };
+        let Some(definition) = definition else {
+            return Ok(None);
+        };
+
+        Ok(Some(GotoDefinitionResponse::Scalar(Location {
+            uri,
+            range: span_to_range(definition.target_span, &document.source_map),
+        })))
+    }
+
+    async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
+        let text_document_position = params.text_document_position;
+        let uri = text_document_position.text_document.uri;
+        let position = text_document_position.position;
+
+        let docs = self.documents.read().await;
+        let Some(document) = docs.get(&uri) else {
+            return Ok(None);
+        };
+        let offset = document
+            .source_map
+            .position_to_offset(position.line, position.character);
+
+        let items = match completions_at(&document.source, offset) {
+            Ok(items) => items,
+            Err(_) => return Ok(None),
+        };
+
+        Ok(Some(CompletionResponse::Array(
+            items
+                .into_iter()
+                .map(|item| CompletionItem {
+                    label: item.label,
+                    kind: Some(symbol_kind_to_completion_kind(item.kind)),
+                    detail: Some(item.detail),
+                    ..CompletionItem::default()
+                })
+                .collect(),
+        )))
+    }
 }
 
 pub async fn serve() {
@@ -192,5 +257,15 @@ fn span_to_range(span: Span, source_map: &SourceMap) -> Range {
             line: end_line,
             character: end_col,
         },
+    }
+}
+
+fn symbol_kind_to_completion_kind(kind: SymbolKind) -> CompletionItemKind {
+    match kind {
+        SymbolKind::Function => CompletionItemKind::FUNCTION,
+        SymbolKind::Parameter => CompletionItemKind::VARIABLE,
+        SymbolKind::Local => CompletionItemKind::VARIABLE,
+        SymbolKind::Struct => CompletionItemKind::STRUCT,
+        SymbolKind::Enum => CompletionItemKind::ENUM,
     }
 }
