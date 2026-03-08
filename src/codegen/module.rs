@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use crate::ast::Type;
-use crate::ast::FunctionDecl;
+use crate::ast::{FunctionDecl, Type};
 use crate::codegen::ir::IrInstruction;
+use crate::runtime::{RuntimeImports, string_eq_import_name, string_literal_import_name};
 use crate::typing::TypedFunction;
 use eres_abi::{AbiType, HostFunction};
 use wasm_encoder::*;
@@ -73,12 +73,69 @@ impl ModuleGen {
         }
     }
 
+    pub fn init_with_runtime_imports(
+        mut self,
+        imports: &RuntimeImports,
+    ) -> Result<Self, CodegenError> {
+        if imports.needs_string_eq {
+            self.add_internal_import(
+                string_eq_import_name(),
+                &[Type::String, Type::String],
+                &Type::Bool,
+            )?;
+        }
+
+        for literal in &imports.string_literals {
+            self.add_internal_import(&string_literal_import_name(literal), &[], &Type::String)?;
+        }
+
+        Ok(self)
+    }
+
     /// Registers host functions that are available globally to eres code.
     pub fn init_with_host_functions(mut self, hosts: &[HostFunction]) -> Result<Self, CodegenError> {
         for host in hosts {
             self.add_host_import(host)?;
         }
         Ok(self)
+    }
+
+    fn add_internal_import(
+        &mut self,
+        name: &str,
+        params: &[Type],
+        result: &Type,
+    ) -> Result<(), CodegenError> {
+        if self.func_indices.contains_key(name) {
+            return Ok(());
+        }
+
+        let type_index = self.next_type_index;
+        self.next_type_index += 1;
+        let wasm_params = params
+            .iter()
+            .map(wasm_val_type_for)
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| {
+                CodegenError::UnsupportedType(format!("unsupported runtime import parameter in `{}`", name))
+            })?;
+        let wasm_results = if result == &Type::Unit {
+            Vec::new()
+        } else {
+            vec![wasm_val_type_for(result).ok_or_else(|| {
+                CodegenError::UnsupportedType(format!("unsupported runtime import return in `{}`", name))
+            })?]
+        };
+        self.types.ty().function(wasm_params, wasm_results);
+        self.imports.import("env", name, EntityType::Function(type_index));
+
+        let idx = self.next_func_index;
+        self.next_func_index += 1;
+        self.func_indices.insert(
+            name.to_string(),
+            (idx, params.to_vec(), result.clone()),
+        );
+        Ok(())
     }
 
     fn add_host_import(&mut self, host: &HostFunction) -> Result<(), CodegenError> {

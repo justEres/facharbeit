@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::ast::{BinOp, Expr, Type};
 use crate::codegen::ir::IrInstruction;
 use crate::codegen::module::{CodegenError, FuncGen, FunctionSig};
+use crate::runtime::{string_eq_import_name, string_literal_import_name};
 
 /// Emits instructions for an expression and returns whether it leaves a stack value.
 pub fn emit_expr(
@@ -24,9 +25,15 @@ pub fn emit_expr(
             cg.instructions.push(IrInstruction::I32Const(bit));
             Ok(true)
         }
-        Expr::String(_) => Err(CodegenError::UnsupportedType(
-            "string literal lowering".to_string(),
-        )),
+        Expr::String(value) => {
+            let name = string_literal_import_name(value);
+            let (idx, _, _) = funcs
+                .get(&name)
+                .cloned()
+                .ok_or_else(|| CodegenError::UnknownFunction { name })?;
+            cg.instructions.push(IrInstruction::Call(idx));
+            Ok(true)
+        }
         Expr::ListLiteral(_) => {
             Err(CodegenError::UnsupportedType("list literal lowering".to_string()))
         }
@@ -80,6 +87,15 @@ pub fn emit_expr(
                 (BinOp::Eq, Type::Int) => cg.instructions.push(IrInstruction::I64Eq),
                 (BinOp::Eq, Type::Float) => cg.instructions.push(IrInstruction::F64Eq),
                 (BinOp::Eq, Type::Bool) => cg.instructions.push(IrInstruction::I32Eq),
+                (BinOp::Eq, Type::String) => {
+                    let (idx, _, _) = funcs
+                        .get(string_eq_import_name())
+                        .cloned()
+                        .ok_or_else(|| CodegenError::UnknownFunction {
+                            name: string_eq_import_name().to_string(),
+                        })?;
+                    cg.instructions.push(IrInstruction::Call(idx));
+                }
                 (BinOp::NotEq, Type::Int) => {
                     cg.instructions.push(IrInstruction::I64Eq);
                     cg.instructions.push(IrInstruction::I32Eqz);
@@ -90,6 +106,16 @@ pub fn emit_expr(
                 }
                 (BinOp::NotEq, Type::Bool) => {
                     cg.instructions.push(IrInstruction::I32Eq);
+                    cg.instructions.push(IrInstruction::I32Eqz);
+                }
+                (BinOp::NotEq, Type::String) => {
+                    let (idx, _, _) = funcs
+                        .get(string_eq_import_name())
+                        .cloned()
+                        .ok_or_else(|| CodegenError::UnknownFunction {
+                            name: string_eq_import_name().to_string(),
+                        })?;
+                    cg.instructions.push(IrInstruction::Call(idx));
                     cg.instructions.push(IrInstruction::I32Eqz);
                 }
                 (BinOp::Lt, Type::Int) => cg.instructions.push(IrInstruction::I64LtS),

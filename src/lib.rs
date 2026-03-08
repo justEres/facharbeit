@@ -8,6 +8,7 @@ pub mod lexer;
 pub mod lsp;
 pub mod loader;
 pub mod parser;
+pub mod runtime;
 pub mod runner;
 pub mod token;
 pub mod typing;

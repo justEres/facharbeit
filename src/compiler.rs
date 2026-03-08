@@ -10,6 +10,7 @@ use crate::loader::{LoadError, load_program_from_entry};
 use crate::parser::{ParseError, Parser};
 use crate::token::Token;
 use crate::typing::{TypedProgram, check_program_with_hosts};
+use crate::runtime::collect_runtime_imports;
 
 /// Compiled artifacts produced by the compiler frontend + backend pipeline.
 #[derive(Debug)]
@@ -60,8 +61,15 @@ impl Error for CompileError {}
 /// Compile source code to WebAssembly bytes and keep intermediate artifacts.
 pub fn compile_source(src: &str) -> Result<CompileArtifacts, CompileError> {
     let hosts = default_host_functions();
-    let (tokens, program, typed) = parse_and_check(src, &hosts)?;
-    build_artifacts(tokens, program, typed, Vec::new(), false, &hosts)
+    compile_source_with_hosts(src, &hosts)
+}
+
+pub fn compile_source_with_hosts(
+    src: &str,
+    hosts: &[eres_abi::HostFunction],
+) -> Result<CompileArtifacts, CompileError> {
+    let (tokens, program, typed) = parse_and_check(src, hosts)?;
+    build_artifacts(tokens, program, typed, Vec::new(), false, hosts)
 }
 
 /// Compile a file entrypoint and recursively load `use "..."` modules.
@@ -82,8 +90,15 @@ pub fn compile_entry_file(path: impl AsRef<Path>) -> Result<CompileArtifacts, Co
 /// Compile only through parse+typecheck. Useful for `--check` and frontend validation.
 pub fn compile_source_check(src: &str) -> Result<CompileArtifacts, CompileError> {
     let hosts = default_host_functions();
-    let (tokens, program, typed) = parse_and_check(src, &hosts)?;
-    build_artifacts(tokens, program, typed, Vec::new(), true, &hosts)
+    compile_source_check_with_hosts(src, &hosts)
+}
+
+pub fn compile_source_check_with_hosts(
+    src: &str,
+    hosts: &[eres_abi::HostFunction],
+) -> Result<CompileArtifacts, CompileError> {
+    let (tokens, program, typed) = parse_and_check(src, hosts)?;
+    build_artifacts(tokens, program, typed, Vec::new(), true, hosts)
 }
 
 /// Compile only through parse+typecheck for a file entrypoint.
@@ -121,7 +136,10 @@ fn build_artifacts(
     let bytes = if check_only {
         Vec::new()
     } else {
+        let runtime_imports = collect_runtime_imports(&program);
         let mut module_gen = ModuleGen::new()
+            .init_with_runtime_imports(&runtime_imports)
+            .map_err(CompileError::Codegen)?
             .init_with_host_functions(hosts)
             .map_err(CompileError::Codegen)?;
 
