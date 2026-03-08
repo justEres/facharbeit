@@ -2,10 +2,13 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
+use crate::ast::Type;
+use crate::ast::FunctionDecl;
 use crate::codegen::ir::IrInstruction;
+use crate::typing::TypedFunction;
 use wasm_encoder::*;
 
-use crate::{ast::FunctionDecl, codegen::stmt::emit_stmt};
+use crate::codegen::stmt::emit_stmt;
 
 /// Code generation failures that can occur after parsing.
 #[derive(Debug)]
@@ -16,6 +19,8 @@ pub enum CodegenError {
     UnknownLocal { name: String },
     /// A call targets a function that was never declared/imported.
     UnknownFunction { name: String },
+    /// Type is not supported by the current backend.
+    UnsupportedType(String),
 }
 
 impl Display for CodegenError {
@@ -28,6 +33,7 @@ impl Display for CodegenError {
             CodegenError::UnknownFunction { name } => {
                 write!(f, "unknown function call target: `{}`", name)
             }
+            CodegenError::UnsupportedType(ty) => write!(f, "unsupported type in current codegen backend: {}", ty),
         }
     }
 }
@@ -35,6 +41,8 @@ impl Display for CodegenError {
 impl Error for CodegenError {}
 
 /// Stateful WebAssembly module builder for language functions.
+pub type FunctionSig = (u32, Vec<Type>, Type);
+
 pub struct ModuleGen {
     module: Module,
     types: TypeSection,
@@ -43,7 +51,7 @@ pub struct ModuleGen {
     codes: CodeSection,
     exports: ExportSection,
 
-    func_indices: HashMap<String, (u32, bool)>,
+    func_indices: HashMap<String, FunctionSig>,
     next_type_index: u32,
     next_func_index: u32,
 }
@@ -72,7 +80,6 @@ impl ModuleGen {
     }
 
     fn add_print_import(&mut self) {
-        // (i64) -> ()
         let type_index = self.next_type_index;
         self.next_type_index += 1;
         self.types.ty().function(vec![ValType::I64], Vec::new());
@@ -84,7 +91,8 @@ impl ModuleGen {
         // Expose this import as `print` in the compiler function table.
         let idx = self.next_func_index;
         self.next_func_index += 1;
-        self.func_indices.insert("print".to_string(), (idx, false));
+        self.func_indices
+            .insert("print".to_string(), (idx, vec![Type::Int], Type::Unit));
     }
 
     /// Finalizes sections and returns the encoded wasm module bytes.
@@ -98,28 +106,53 @@ impl ModuleGen {
     }
 
     /// Reserves function signature/index metadata before emitting bodies.
-    pub fn declare_function(&mut self, func: &FunctionDecl) -> Result<(), CodegenError> {
+    pub fn declare_function(
+        &mut self,
+        func: &FunctionDecl,
+        typed: &TypedFunction,
+    ) -> Result<(), CodegenError> {
         if self.func_indices.contains_key(&func.name) {
             return Err(CodegenError::DuplicateFunction {
                 name: func.name.clone(),
             });
         }
 
-        let type_index = self.next_type_index;
-        self.next_type_index += 1;
+        let param_tys: Vec<ValType> = typed
+            .params
+            .iter()
+            .map(|p| wasm_val_type_for(&p.ty))
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| CodegenError::UnsupportedType(format!(
+                "unsupported parameter in function `{}`",
+                func.name
+            )))?;
 
-        let params = vec![ValType::I64; func.params.len()];
-        let results = if func.return_type.is_some() {
-            vec![ValType::I64]
-        } else {
+        let results = if func.return_type == Type::Unit {
             Vec::new()
+        } else {
+            vec![wasm_val_type_for(&func.return_type).ok_or_else(|| {
+                CodegenError::UnsupportedType(format!(
+                    "unsupported return type for function `{}`",
+                    func.name
+                ))
+            })?]
         };
 
-        self.types.ty().function(params, results);
+        let type_index = self.next_type_index;
+        self.next_type_index += 1;
+        self.types.ty().function(param_tys, results);
 
-        let idx = self.func_indices.len() as u32;
+        let idx = self.next_func_index;
+        self.next_func_index += 1;
         self.func_indices
-            .insert(func.name.clone(), (idx, func.return_type.is_some()));
+            .insert(
+                func.name.clone(),
+                (
+                    idx,
+                    typed.params.iter().map(|p| p.ty.clone()).collect(),
+                    func.return_type.clone(),
+                ),
+            );
 
         self.functions.function(type_index);
         self.exports.export(&func.name, ExportKind::Func, idx);
@@ -127,38 +160,58 @@ impl ModuleGen {
     }
 
     /// Emits one function body into the code section.
-    pub fn emit_function(&mut self, func: &FunctionDecl) -> Result<(), CodegenError> {
-        let mut r#gen = FuncGen {
+    pub fn emit_function(
+        &mut self,
+        func: &FunctionDecl,
+        typed: &TypedFunction,
+    ) -> Result<(), CodegenError> {
+        let mut cg = FuncGen {
             locals: Vec::new(),
             local_map: HashMap::new(),
             instructions: Vec::new(),
-            has_return: func.return_type.is_some(),
+            has_return: func.return_type != Type::Unit,
+            return_type: func.return_type.clone(),
         };
 
-        for (i, name) in func.params.iter().enumerate() {
-            r#gen.local_map.insert(name.clone(), i as u32);
+        for (i, param) in typed.params.iter().enumerate() {
+            cg.local_map
+                .insert(param.name.clone(), (i as u32, param.ty.clone()));
+        }
+
+        for (name, ty) in &typed.locals {
+            let wasm_ty = wasm_val_type_for(ty).ok_or_else(|| {
+                CodegenError::UnsupportedType(format!("unsupported local `{}`", name))
+            })?;
+            let idx = cg.local_map.len() as u32;
+            cg.local_map
+                .insert(name.clone(), (idx, ty.clone()));
+            cg.locals.push(wasm_ty);
         }
 
         for stmt in &func.body {
-            emit_stmt(stmt, &mut r#gen, &self.func_indices)?;
+            emit_stmt(stmt, &mut cg, &self.func_indices)?;
         }
 
-        // If the function has a return type but no explicit return was emitted,
-        // provide a default 0 return so the function type matches. If no return
-        // type is declared, don't emit a return value.
-        if func.return_type.is_some() {
-            r#gen.instructions.push(IrInstruction::I64Const(0));
-            r#gen.instructions.push(IrInstruction::Return);
+        if func.return_type != Type::Unit {
+            match &func.return_type {
+                Type::Int => cg.instructions.push(IrInstruction::I64Const(0)),
+                Type::Float => cg.instructions.push(IrInstruction::F64Const(0.0)),
+                Type::Bool | Type::Ref(_) | Type::List(_) | Type::Tuple(_) | Type::Named(_) => {
+                    cg.instructions.push(IrInstruction::I32Const(0))
+                }
+                Type::Unit | Type::Function(_, _) => {}
+            }
+            cg.instructions.push(IrInstruction::Return);
         }
 
         let mut local_groups = Vec::new();
-        for ty in r#gen.locals {
+        for ty in cg.locals {
             local_groups.push((1, ty));
         }
 
         let mut wasm_func = Function::new(local_groups);
 
-        for instr in r#gen.instructions {
+        for instr in cg.instructions {
             wasm_func.instruction(&instr.to_wasm());
         }
 
@@ -169,14 +222,27 @@ impl ModuleGen {
     }
 }
 
+fn wasm_val_type_for(ty: &Type) -> Option<ValType> {
+    match ty {
+        Type::Int => Some(ValType::I64),
+        Type::Float => Some(ValType::F64),
+        Type::Bool => Some(ValType::I32),
+        Type::Ref(_) | Type::List(_) | Type::Tuple(_) | Type::Named(_) => Some(ValType::I32),
+        Type::Function(_, _) => None,
+        Type::Unit => None,
+    }
+}
+
 /// Per-function code generation state.
 pub struct FuncGen {
     /// Additional local declarations (params are implicit locals 0..n).
     pub locals: Vec<ValType>,
-    /// Symbol table for locals and parameters.
-    pub local_map: HashMap<String, u32>,
+    /// Symbol table for locals and parameters -> (index, type).
+    pub local_map: HashMap<String, (u32, Type)>,
     // Instruction list for one function body.
     pub instructions: Vec<IrInstruction>,
     /// Whether the current function expects a return value.
     pub has_return: bool,
+    /// Current function return type.
+    pub return_type: Type,
 }

@@ -1,4 +1,3 @@
-use std::sync::{Arc, Mutex};
 use wasmtime::{Engine, Instance, Store, Val};
 
 /// Run wasm bytes calling `main` with the provided i64 arguments.
@@ -49,8 +48,9 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
     use crate::compiler::compile_source;
+    use std::fs;
+    use std::sync::{Arc, Mutex};
 
     fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
         compile_source(src).map(|out| out.bytes).map_err(|e| e.to_string())

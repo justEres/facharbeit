@@ -1,12 +1,12 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use crate::ast::{FunctionDecl, Program, TopLevelDecl};
+use crate::ast::{Program, TopLevelDecl};
 use crate::codegen::module::{CodegenError, ModuleGen};
 use crate::lexer::{LexError, lex_file};
 use crate::parser::{ParseError, Parser};
 use crate::token::Token;
-use crate::typing::{check_program, TypedFunction, TypedProgram};
+use crate::typing::{TypedProgram, check_program};
 
 /// Compiled artifacts produced by the compiler frontend + backend pipeline.
 #[derive(Debug)]
