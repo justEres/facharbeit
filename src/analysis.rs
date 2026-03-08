@@ -111,6 +111,10 @@ pub fn analyze_diagnostic(source: &str) -> Option<AnalysisDiagnostic> {
             message: err.to_string(),
             span: None,
         }),
+        Err(CompileError::Load(err)) => Some(AnalysisDiagnostic {
+            message: err.to_string(),
+            span: None,
+        }),
         Err(CompileError::Codegen(_)) => None,
     }
 }
@@ -312,6 +316,7 @@ pub fn document_symbols(source: &str) -> Result<Vec<DocumentSymbolInfo>, Compile
 
     for item in &checked.program.items {
         match item {
+            TopLevelDecl::Use(_) => {}
             TopLevelDecl::Function(function) => {
                 if let Some(symbol) = index.functions.get(&function.name) {
                     let mut children = Vec::new();
@@ -380,12 +385,16 @@ impl SymbolIndex {
         let mut function_signatures = HashMap::new();
 
         for item in &program.items {
-            if let TopLevelDecl::Function(function) = item {
-                function_signatures.insert(function.name.clone(), format_function_signature(
-                    &function.name,
-                    &function.params,
-                    &function.return_type,
-                ));
+            match item {
+                TopLevelDecl::Use(_) => {}
+                TopLevelDecl::Function(function) => {
+                    function_signatures.insert(function.name.clone(), format_function_signature(
+                        &function.name,
+                        &function.params,
+                        &function.return_type,
+                    ));
+                }
+                TopLevelDecl::Struct(_) | TopLevelDecl::Enum(_) => {}
             }
         }
 
@@ -724,7 +733,9 @@ fn span_contains(span: &Span, offset: usize) -> bool {
 
 fn lex_error_span(error: &LexError) -> Span {
     match error {
-        LexError::UnexpectedChar { span, .. } | LexError::InvalidNumber { span } => span.clone(),
+        LexError::UnexpectedChar { span, .. }
+        | LexError::InvalidNumber { span }
+        | LexError::UnterminatedString { span } => span.clone(),
     }
 }
 

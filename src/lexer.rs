@@ -126,7 +126,8 @@ impl<'a> Lexer<'a> {
             '%' => TokenKind::Percentage,
             '&' => TokenKind::Ampersand,
             ',' => TokenKind::Comma,
-            '\'' | '"' => {
+            '"' => self.lex_string(start)?,
+            '\'' => {
                 return Err(LexError::UnexpectedChar {
                     ch,
                     span: self.span_from(start),
@@ -216,6 +217,7 @@ impl<'a> Lexer<'a> {
         match ident_str.as_str() {
             "let" => TokenKind::Let,
             "fn" => TokenKind::Fn,
+            "use" => TokenKind::Use,
             "if" => TokenKind::If,
             "else" => TokenKind::Else,
             "while" => TokenKind::While,
@@ -226,10 +228,37 @@ impl<'a> Lexer<'a> {
             "Int" => TokenKind::IntType,
             "Float" => TokenKind::FloatType,
             "Bool" => TokenKind::BoolType,
+            "String" => TokenKind::StringType,
             "true" => TokenKind::True,
             "false" => TokenKind::False,
             _ => TokenKind::Ident(ident_str),
         }
+    }
+
+    fn lex_string(&mut self, start: usize) -> Result<TokenKind, LexError> {
+        let mut value = String::new();
+        while let Some(ch) = self.bump() {
+            match ch {
+                '"' => return Ok(TokenKind::StringLit(value)),
+                '\\' => {
+                    let escaped = self.bump().ok_or_else(|| LexError::UnterminatedString {
+                        span: self.span_from(start),
+                    })?;
+                    match escaped {
+                        '\\' => value.push('\\'),
+                        '"' => value.push('"'),
+                        'n' => value.push('\n'),
+                        't' => value.push('\t'),
+                        other => value.push(other),
+                    }
+                }
+                other => value.push(other),
+            }
+        }
+
+        Err(LexError::UnterminatedString {
+            span: self.span_from(start),
+        })
     }
 
     fn skip_whitespace(&mut self) {
@@ -274,6 +303,8 @@ pub enum LexError {
     UnexpectedChar { ch: char, span: Span },
     /// Integer/float literal could not be parsed into the target numeric type.
     InvalidNumber { span: Span },
+    /// Double-quoted string literal was not terminated.
+    UnterminatedString { span: Span },
 }
 
 impl Display for LexError {
@@ -286,6 +317,9 @@ impl Display for LexError {
             ),
             LexError::InvalidNumber { span } => {
                 write!(f, "invalid number literal at byte range {}..{}", span.start, span.end)
+            }
+            LexError::UnterminatedString { span } => {
+                write!(f, "unterminated string literal at byte range {}..{}", span.start, span.end)
             }
         }
     }
@@ -305,6 +339,13 @@ pub fn report_lex_error(src: &str, error: LexError) {
             let snippet = render_snippet(src, &span);
             eprintln!(
                 "LexError [E-LX02] at line {}, column {}: invalid number literal\nhelp: use a valid numeric literal\n{}\n{}",
+                snippet.line, snippet.column, snippet.source_line, snippet.marker_line
+            );
+        }
+        LexError::UnterminatedString { span } => {
+            let snippet = render_snippet(src, &span);
+            eprintln!(
+                "LexError [E-LX03] at line {}, column {}: unterminated string literal\nhelp: close the string with a double quote\n{}\n{}",
                 snippet.line, snippet.column, snippet.source_line, snippet.marker_line
             );
         }
@@ -348,5 +389,12 @@ mod tests {
             LexError::UnexpectedChar { ch, .. } => assert_eq!(ch, '@'),
             _ => panic!("expected UnexpectedChar"),
         }
+    }
+
+    #[test]
+    fn lex_use_string_literal() {
+        let tokens = lex_file("use \"./foo.eres\";").expect("lexing failed");
+        assert_eq!(tokens[0].kind, TokenKind::Use);
+        assert_eq!(tokens[1].kind, TokenKind::StringLit("./foo.eres".to_string()));
     }
 }

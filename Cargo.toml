@@ -1,3 +1,6 @@
+[workspace]
+members = [".", "crates/eres_abi", "crates/eres_abi_macros", "crates/eres_std"]
+
 [package]
 name = "facharbeit"
 version = "0.1.0"
@@ -5,6 +8,8 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
+eres_abi = { path = "crates/eres_abi" }
+eres_std = { path = "crates/eres_std" }
 tokio = { version = "1.48.0", features = ["full"] }
 tower-lsp = "0.20.0"
 wasm-encoder = "0.243.0"

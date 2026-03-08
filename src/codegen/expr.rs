@@ -24,6 +24,9 @@ pub fn emit_expr(
             cg.instructions.push(IrInstruction::I32Const(bit));
             Ok(true)
         }
+        Expr::String(_) => Err(CodegenError::UnsupportedType(
+            "string literal lowering".to_string(),
+        )),
         Expr::ListLiteral(_) => {
             Err(CodegenError::UnsupportedType("list literal lowering".to_string()))
         }
@@ -153,6 +156,7 @@ pub(crate) fn infer_expr_type(
         Expr::Int(_) => Ok(Type::Int),
         Expr::Float(_) => Ok(Type::Float),
         Expr::Bool(_) => Ok(Type::Bool),
+        Expr::String(_) => Ok(Type::String),
         Expr::ListLiteral(_) => Err(CodegenError::UnsupportedType(
             "list literal lowering".to_string(),
         )),
@@ -187,7 +191,7 @@ pub(crate) fn infer_expr_type(
                 match (op, left_ty.clone()) {
                     (
                         BinOp::Eq | BinOp::NotEq,
-                        Type::Int | Type::Float | Type::Bool,
+                        Type::Int | Type::Float | Type::Bool | Type::String,
                     ) => Ok(Type::Bool),
                     (BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge, Type::Int | Type::Float) => {
                         Ok(Type::Bool)

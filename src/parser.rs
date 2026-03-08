@@ -16,6 +16,18 @@ mod tests {
     use crate::lexer::lex_file;
 
     #[test]
+    fn parse_use_decl() {
+        let src = "use \"./math.eres\";";
+        let tokens = lex_file(src).expect("lex");
+        let mut p = Parser::new(&tokens);
+        let program = p.parse_program().expect("parse");
+        match &program.items[0] {
+            TopLevelDecl::Use(path) => assert_eq!(path, "./math.eres"),
+            _ => panic!("expected use declaration"),
+        }
+    }
+
+    #[test]
     fn parse_struct_decl() {
         let src = "struct Point { x: Int, y: Int }";
         let tokens = lex_file(src).expect("lex");
@@ -201,7 +213,7 @@ mod tests {
 
     #[test]
     fn parse_list_and_tuple_literals() {
-        let src = "fn f() -> Int { let xs = [1, 2, 3]; let t = (1, true); return 1; }";
+        let src = "fn f() -> Int { let xs = [1, 2, 3]; let t = (1, true); let s = \"hi\"; return 1; }";
         let tokens = lex_file(src).expect("lex");
         let mut p = Parser::new(&tokens);
         let program = p.parse_program().expect("parse");
@@ -225,6 +237,10 @@ mod tests {
                 assert_eq!(items.len(), 2);
             }
             _ => panic!("expected tuple literal"),
+        }
+        match &f.body[2] {
+            Stmt::Let { value: Expr::String(value), .. } => assert_eq!(value, "hi"),
+            _ => panic!("expected string literal"),
         }
     }
 
@@ -355,12 +371,13 @@ impl<'a> Parser<'a> {
 
         while self.peek().kind != TokenKind::Eof {
             let item = match self.peek().kind {
+                TokenKind::Use => self.parse_use()?,
                 TokenKind::Struct => self.parse_struct()?,
                 TokenKind::Enum => self.parse_enum()?,
                 TokenKind::Fn => TopLevelDecl::Function(self.parse_function()?),
                 _ => {
                     return Err(ParseError::UnexpectedToken {
-                        expected: "fn|struct|enum".to_string(),
+                        expected: "use|fn|struct|enum".to_string(),
                         found: self.peek().clone(),
                     })
                 }
@@ -369,6 +386,24 @@ impl<'a> Parser<'a> {
         }
 
         Ok(Program { items })
+    }
+
+    fn parse_use(&mut self) -> Result<TopLevelDecl, ParseError> {
+        self.expect(TokenKind::Use)?;
+        let path = match self.bump().kind {
+            TokenKind::StringLit(path) => path,
+            other => {
+                return Err(ParseError::UnexpectedToken {
+                    expected: "string literal".to_string(),
+                    found: Token {
+                        kind: other,
+                        span: self.tokens[self.pos - 1].span.clone(),
+                    },
+                });
+            }
+        };
+        self.expect(TokenKind::Semicolon)?;
+        Ok(TopLevelDecl::Use(path))
     }
 
     fn parse_struct(&mut self) -> Result<TopLevelDecl, ParseError> {
@@ -701,6 +736,7 @@ impl<'a> Parser<'a> {
             TokenKind::Float(value) => Ok(Expr::Float(value)),
             TokenKind::True => Ok(Expr::Bool(true)),
             TokenKind::False => Ok(Expr::Bool(false)),
+            TokenKind::StringLit(value) => Ok(Expr::String(value)),
 
             TokenKind::Ident(name) => {
                 if self.peek().kind == TokenKind::DoubleColon {
@@ -954,6 +990,10 @@ impl<'a> Parser<'a> {
             TokenKind::BoolType => {
                 self.bump();
                 Ok(Type::Bool)
+            }
+            TokenKind::StringType => {
+                self.bump();
+                Ok(Type::String)
             }
             TokenKind::Ampersand => {
                 self.bump();

@@ -6,6 +6,7 @@ use crate::ast::Type;
 use crate::ast::FunctionDecl;
 use crate::codegen::ir::IrInstruction;
 use crate::typing::TypedFunction;
+use eres_abi::{AbiType, HostFunction};
 use wasm_encoder::*;
 
 use crate::codegen::stmt::emit_stmt;
@@ -72,27 +73,56 @@ impl ModuleGen {
         }
     }
 
-    /// Registers built-in host functions (currently `print`).
-    pub fn init_with_host_functions(mut self) -> Self {
-        // Register host imports (currently only print).
-        self.add_print_import();
-        self
+    /// Registers host functions that are available globally to eres code.
+    pub fn init_with_host_functions(mut self, hosts: &[HostFunction]) -> Result<Self, CodegenError> {
+        for host in hosts {
+            self.add_host_import(host)?;
+        }
+        Ok(self)
     }
 
-    fn add_print_import(&mut self) {
+    fn add_host_import(&mut self, host: &HostFunction) -> Result<(), CodegenError> {
+        if self.func_indices.contains_key(host.name) {
+            return Err(CodegenError::DuplicateFunction {
+                name: host.name.to_string(),
+            });
+        }
+
         let type_index = self.next_type_index;
         self.next_type_index += 1;
-        self.types.ty().function(vec![ValType::I64], Vec::new());
+        let params = host
+            .params
+            .iter()
+            .map(abi_to_wasm_encoder_val_type)
+            .collect::<Option<Vec<_>>>()
+            .ok_or_else(|| {
+                CodegenError::UnsupportedType(format!("unsupported host parameter in `{}`", host.name))
+            })?;
+        let results = match &host.result {
+            AbiType::Unit => Vec::new(),
+            other => vec![abi_to_wasm_encoder_val_type(&other).ok_or_else(|| {
+                CodegenError::UnsupportedType(format!("unsupported host return type in `{}`", host.name))
+            })?],
+        };
+        self.types.ty().function(params, results);
 
-        // Import as env.print_i64.
         self.imports
-            .import("env", "print_i64", EntityType::Function(type_index));
+            .import("env", host.name, EntityType::Function(type_index));
 
-        // Expose this import as `print` in the compiler function table.
         let idx = self.next_func_index;
         self.next_func_index += 1;
-        self.func_indices
-            .insert("print".to_string(), (idx, vec![Type::Int], Type::Unit));
+        self.func_indices.insert(
+            host.name.to_string(),
+            (
+                idx,
+                host.params
+                    .iter()
+                    .map(abi_to_ast_type)
+                    .collect(),
+                abi_to_ast_type(&host.result),
+            ),
+        );
+        Ok(())
     }
 
     /// Finalizes sections and returns the encoded wasm module bytes.
@@ -196,7 +226,12 @@ impl ModuleGen {
             match &func.return_type {
                 Type::Int => cg.instructions.push(IrInstruction::I64Const(0)),
                 Type::Float => cg.instructions.push(IrInstruction::F64Const(0.0)),
-                Type::Bool | Type::Ref(_) | Type::List(_) | Type::Tuple(_) | Type::Named(_) => {
+                Type::Bool
+                | Type::String
+                | Type::Ref(_)
+                | Type::List(_)
+                | Type::Tuple(_)
+                | Type::Named(_) => {
                     cg.instructions.push(IrInstruction::I32Const(0))
                 }
                 Type::Unit | Type::Function(_, _) => {}
@@ -222,12 +257,39 @@ impl ModuleGen {
     }
 }
 
+fn abi_to_ast_type(ty: &AbiType) -> Type {
+    match ty {
+        AbiType::Int => Type::Int,
+        AbiType::Float => Type::Float,
+        AbiType::Bool => Type::Bool,
+        AbiType::String => Type::String,
+        AbiType::List(inner) => Type::List(Box::new(abi_to_ast_type(inner))),
+        AbiType::Tuple(elements) => Type::Tuple(elements.iter().map(abi_to_ast_type).collect()),
+        AbiType::Named(named) => Type::Named(named.name.clone()),
+        AbiType::Unit => Type::Unit,
+    }
+}
+
+fn abi_to_wasm_encoder_val_type(ty: &AbiType) -> Option<ValType> {
+    match ty {
+        AbiType::Int => Some(ValType::I64),
+        AbiType::Float => Some(ValType::F64),
+        AbiType::Bool => Some(ValType::I32),
+        AbiType::String | AbiType::List(_) | AbiType::Tuple(_) | AbiType::Named(_) => {
+            Some(ValType::I32)
+        }
+        AbiType::Unit => None,
+    }
+}
+
 fn wasm_val_type_for(ty: &Type) -> Option<ValType> {
     match ty {
         Type::Int => Some(ValType::I64),
         Type::Float => Some(ValType::F64),
         Type::Bool => Some(ValType::I32),
-        Type::Ref(_) | Type::List(_) | Type::Tuple(_) | Type::Named(_) => Some(ValType::I32),
+        Type::String | Type::Ref(_) | Type::List(_) | Type::Tuple(_) | Type::Named(_) => {
+            Some(ValType::I32)
+        }
         Type::Function(_, _) => None,
         Type::Unit => None,
     }

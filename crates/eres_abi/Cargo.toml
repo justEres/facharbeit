@@ -1,0 +1,8 @@
+[package]
+name = "eres_abi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eres_abi_macros = { path = "../eres_abi_macros" }
+wasmtime = "40.0.0"

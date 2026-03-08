@@ -2,8 +2,12 @@ use clap::Parser;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-use facharbeit::compiler::{CompileArtifacts, CompileError, compile_source, compile_source_check};
+use facharbeit::compiler::{
+    CompileArtifacts, CompileError, compile_entry_file, compile_entry_file_check, compile_source,
+    compile_source_check,
+};
 use facharbeit::lexer::report_lex_error;
+use facharbeit::loader::LoadError;
 use facharbeit::parser::report_parse_error;
 use facharbeit::runner;
 
@@ -69,20 +73,18 @@ fn main() {
             return;
         }
     };
-    let src = std::fs::read_to_string(input).expect("Failed to read input file");
-
     let compile_out = match if args.check {
-        compile_source_check(&src)
+        compile_entry_file_check(input)
     } else {
-        compile_source(&src)
+        compile_entry_file(input)
     } {
         Ok(out) => out,
-        Err(CompileError::Lex(e)) => {
-            report_lex_error(&src, e);
+        Err(CompileError::Load(e)) => {
+            report_load_error(e);
             return;
         }
-        Err(CompileError::Parse(e)) => {
-            report_parse_error(&src, &e);
+        Err(CompileError::Lex(_)) | Err(CompileError::Parse(_)) => {
+            eprintln!("Internal error: file entry compilation should surface lex/parse through loader");
             return;
         }
         Err(CompileError::TypeCheck(e)) => {
@@ -100,6 +102,20 @@ fn main() {
     };
 
     let _ = handle_compiled_output(&args, &compile_out);
+}
+
+fn report_load_error(error: LoadError) {
+    match error {
+        LoadError::Lex { path, src, error } => {
+            eprintln!("In file {}:", path.display());
+            report_lex_error(&src, error);
+        }
+        LoadError::Parse { path, src, error } => {
+            eprintln!("In file {}:", path.display());
+            report_parse_error(&src, &error);
+        }
+        other => eprintln!("LoadError [E-LD01]: {}", other),
+    }
 }
 
 fn run_repl(args: &Args) {
@@ -143,6 +159,10 @@ fn run_repl(args: &Args) {
             }
             Err(CompileError::Parse(e)) => {
                 report_parse_error(&repl_src, &e);
+                continue;
+            }
+            Err(CompileError::Load(_)) => {
+                eprintln!("Internal error: REPL should not produce loader errors");
                 continue;
             }
             Err(CompileError::TypeCheck(e)) => {

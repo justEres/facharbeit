@@ -7,6 +7,8 @@ pub enum Type {
     Float,
     /// Boolean value.
     Bool,
+    /// UTF-8 string value.
+    String,
     /// Named type (struct/enum/reference aliases).
     Named(String),
     /// Reference type, explicit via `&T`.
@@ -37,6 +39,8 @@ pub enum Expr {
     Float(f64),
     /// Boolean literal.
     Bool(bool),
+    /// String literal.
+    String(String),
     /// Local variable reference.
     Local(String),
     /// Unary reference operator (`&expr`).
@@ -187,6 +191,7 @@ pub struct FunctionDecl {
 /// Top-level AST items.
 #[derive(Debug, Clone)]
 pub enum TopLevelDecl {
+    Use(String),
     Struct(StructDecl),
     Enum(EnumDecl),
     Function(FunctionDecl),
@@ -204,6 +209,7 @@ impl std::fmt::Display for Type {
             Type::Int => write!(f, "Int"),
             Type::Float => write!(f, "Float"),
             Type::Bool => write!(f, "Bool"),
+            Type::String => write!(f, "String"),
             Type::Named(name) => write!(f, "{}", name),
             Type::Ref(inner) => write!(f, "&{}", inner),
             Type::List(inner) => write!(f, "List<{}>", inner),

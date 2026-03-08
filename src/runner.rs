@@ -1,21 +1,30 @@
-use wasmtime::{Engine, Instance, Store, Val};
+use crate::host::default_host_functions;
+use eres_abi::{
+    AbiType, HostFunction, RuntimeHeap, abi_type_to_val_type, host_value_to_val,
+    val_to_host_value,
+};
+use wasmtime::{Caller, Engine, Func, FuncType, Instance, Store, Val};
 
 /// Run wasm bytes calling `main` with the provided i64 arguments.
 /// Returns Ok(Some(i64)) if the function returns a single i64, Ok(None) if
 /// the function has no return, or Err on failure.
 pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, String> {
+    run_wasm_bytes_with_hosts(bytes, args, &default_host_functions())
+}
+
+pub fn run_wasm_bytes_with_hosts(
+    bytes: &[u8],
+    args: Vec<i64>,
+    hosts: &[HostFunction],
+) -> Result<Option<i64>, String> {
     let engine = Engine::default();
     let module = wasmtime::Module::from_binary(&engine, bytes)
         .map_err(|e| format!("module compile error: {}", e))?;
 
-    let mut store = Store::new(&engine, ());
-
-    // create host print function
-    let print_func = wasmtime::Func::wrap(&mut store, |v: i64| {
-        println!("{}", v);
-    });
-
-    let instance = Instance::new(&mut store, &module, &[print_func.into()])
+    let mut store = Store::new(&engine, RuntimeHeap::default());
+    let imports = instantiate_host_imports(&mut store, &engine, hosts)?;
+    let imports_ref = imports.iter().cloned().map(Into::into).collect::<Vec<_>>();
+    let instance = Instance::new(&mut store, &module, &imports_ref)
         .map_err(|e| format!("instance error: {}", e))?;
 
     let func = instance
@@ -45,12 +54,72 @@ pub fn run_wasm_bytes(bytes: &[u8], args: Vec<i64>) -> Result<Option<i64>, Strin
     }
 }
 
+fn instantiate_host_imports(
+    store: &mut Store<RuntimeHeap>,
+    engine: &Engine,
+    hosts: &[HostFunction],
+) -> Result<Vec<Func>, String> {
+    let mut funcs = Vec::new();
+
+    for host in hosts {
+        let ty = FuncType::new(
+            engine,
+            host.params.iter().filter_map(abi_type_to_val_type),
+            match &host.result {
+                AbiType::Unit => Vec::new(),
+                other => vec![
+                    abi_type_to_val_type(other)
+                        .ok_or_else(|| format!("unsupported host return type for `{}`", host.name))?,
+                ],
+            },
+        );
+        let host = host.clone();
+        let func = Func::new(&mut *store, ty, move |mut caller: Caller<'_, RuntimeHeap>, params, results| {
+            let args = params
+                .iter()
+                .zip(host.params.iter())
+                .map(|(value, ty)| val_to_host_value(value, ty))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(wasmtime::Error::msg)?;
+            let value = (host.call)(caller.data_mut(), &args).map_err(wasmtime::Error::msg)?;
+            if let Some(value) = value {
+                results[0] = host_value_to_val(value, &host.result).map_err(wasmtime::Error::msg)?;
+            }
+            Ok(())
+        });
+        funcs.push(func);
+    }
+
+    Ok(funcs)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::compiler::compile_source;
+    use crate::host::default_host_functions;
+    use eres_abi::{AbiType, HostFunction, HostValue};
     use std::fs;
-    use std::sync::{Arc, Mutex};
+    use std::sync::{Arc, Mutex, OnceLock};
+
+    static PRINT_CAPTURE: OnceLock<Arc<Mutex<Vec<i64>>>> = OnceLock::new();
+
+    fn record_print(
+        _heap: &mut RuntimeHeap,
+        args: &[HostValue],
+    ) -> Result<Option<HostValue>, String> {
+        let value = match args.first() {
+            Some(HostValue::Int(value)) => *value,
+            other => return Err(format!("unexpected print args: {:?}", other)),
+        };
+        PRINT_CAPTURE
+            .get()
+            .expect("print capture missing")
+            .lock()
+            .expect("print capture poisoned")
+            .push(value);
+        Ok(None)
+    }
 
     fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
         compile_source(src).map(|out| out.bytes).map_err(|e| e.to_string())
@@ -111,25 +180,30 @@ mod tests {
 
     #[test]
     fn print_statement_outputs() {
-        // inline source instead of reading a file
         let src = "fn main() -> Int { print(3); return 0; }";
-
         let bytes = compile_bytes_from_src(src).expect("compile failed");
-
-        // instantiate module with a host `print_i64` that records values
         let engine = Engine::default();
         let module = wasmtime::Module::from_binary(&engine, &bytes).expect("module compile failed");
-
         let printed: Arc<Mutex<Vec<i64>>> = Arc::new(Mutex::new(Vec::new()));
-
-        let mut store = Store::new(&engine, ());
-        let captured = printed.clone();
-        let print_func = wasmtime::Func::wrap(&mut store, move |v: i64| {
-            captured.lock().unwrap().push(v);
-        });
-
-        let instance = Instance::new(&mut store, &module, &[print_func.into()])
-            .expect("instance creation failed");
+        let mut store = Store::new(&engine, RuntimeHeap::default());
+        let mut hosts = default_host_functions()
+            .into_iter()
+            .filter(|host| host.name != "print")
+            .collect::<Vec<_>>();
+        let _ = PRINT_CAPTURE.set(printed.clone());
+        hosts.insert(
+            0,
+            HostFunction {
+                name: "print",
+                params: vec![AbiType::Int],
+                result: AbiType::Unit,
+                descriptors: Vec::new(),
+                call: record_print,
+            },
+        );
+        let imports = instantiate_host_imports(&mut store, &engine, &hosts).expect("instantiate imports");
+        let imports_ref = imports.iter().cloned().map(Into::into).collect::<Vec<_>>();
+        let instance = Instance::new(&mut store, &module, &imports_ref).expect("instance creation failed");
 
         let func = instance
             .get_func(&mut store, "main")

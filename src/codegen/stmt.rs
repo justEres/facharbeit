@@ -69,6 +69,9 @@ pub fn emit_stmt(
                             crate::ast::Type::Float => {
                                 r#gen.instructions.push(IrInstruction::F64Const(0.0));
                             }
+                            crate::ast::Type::String => {
+                                r#gen.instructions.push(IrInstruction::I32Const(0));
+                            }
                             _ => r#gen.instructions.push(IrInstruction::I32Const(0)),
                         }
                     }

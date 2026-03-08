@@ -1,6 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::ast::*;
+use crate::host::{abi_type_to_ast_type, host_descriptor_to_ast};
+use eres_abi::{HostFunction, TypeDescriptor};
 
 #[derive(Debug)]
 pub struct TypedProgram {
@@ -181,23 +183,39 @@ impl std::fmt::Display for TypeError {
 impl std::error::Error for TypeError {}
 
 pub fn check_program(program: &Program) -> Result<TypedProgram, TypeError> {
+    check_program_with_hosts(program, &[])
+}
+
+pub fn check_program_with_hosts(
+    program: &Program,
+    host_functions: &[HostFunction],
+) -> Result<TypedProgram, TypeError> {
     let mut structs = HashMap::new();
     let mut enums = HashMap::new();
     let mut function_signatures = HashMap::new();
 
-    function_signatures.insert(
-        "print".to_string(),
-        FnSignature {
-            params: vec![Param {
-                name: "value".to_string(),
-                ty: Type::Int,
-            }],
-            return_type: Type::Unit,
-        },
-    );
+    for host in host_functions {
+        register_host_descriptors(&mut structs, &mut enums, &host.descriptors)?;
+        function_signatures.insert(
+            host.name.to_string(),
+            FnSignature {
+                params: host
+                    .params
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, ty)| Param {
+                        name: format!("arg{}", idx + 1),
+                        ty: abi_type_to_ast_type(ty),
+                    })
+                    .collect(),
+                return_type: abi_type_to_ast_type(&host.result),
+            },
+        );
+    }
 
     for item in &program.items {
         match item {
+            TopLevelDecl::Use(_) => {}
             TopLevelDecl::Struct(def) => {
                 if structs.contains_key(&def.name) {
                     return Err(TypeError::DuplicateType {
@@ -327,6 +345,7 @@ fn validate_named_type(
                 Err(TypeError::UnknownType { name: name.clone() })
             }
         }
+        Type::String => Ok(()),
         Type::Ref(inner) => validate_named_type(structs, enums, inner),
         Type::List(inner) => validate_named_type(structs, enums, inner),
         Type::Tuple(elements) => {
@@ -544,6 +563,7 @@ fn infer_expr_with_expected(
         Expr::Int(_) => Ok(Type::Int),
         Expr::Float(_) => Ok(Type::Float),
         Expr::Bool(_) => Ok(Type::Bool),
+        Expr::String(_) => Ok(Type::String),
         Expr::Local(name) => locals
             .get(name)
             .map(|(_, ty)| ty.clone())
@@ -1048,7 +1068,22 @@ fn infer_binary(
                 what: "arithmetic expression".to_string(),
             }),
         },
-        BinOp::Eq | BinOp::NotEq | BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => Ok(Type::Bool),
+        BinOp::Eq | BinOp::NotEq => match left_ty {
+            Type::Int | Type::Float | Type::Bool | Type::String => Ok(Type::Bool),
+            _ => Err(TypeError::TypeMismatch {
+                expected: Type::Named("Int, Float, Bool, or String".to_string()),
+                found: left_ty,
+                what: "equality expression".to_string(),
+            }),
+        },
+        BinOp::Lt | BinOp::Le | BinOp::Gt | BinOp::Ge => match left_ty {
+            Type::Int | Type::Float => Ok(Type::Bool),
+            _ => Err(TypeError::TypeMismatch {
+                expected: Type::Named("Int or Float".to_string()),
+                found: left_ty,
+                what: "ordering expression".to_string(),
+            }),
+        },
     }
 }
 
@@ -1178,6 +1213,43 @@ fn is_assignable(expected: &Type, provided: &Type) -> bool {
     }
 }
 
+fn register_host_descriptors(
+    structs: &mut HashMap<String, StructDecl>,
+    enums: &mut HashMap<String, EnumDecl>,
+    descriptors: &[TypeDescriptor],
+) -> Result<(), TypeError> {
+    for descriptor in descriptors {
+        match host_descriptor_to_ast(descriptor) {
+            Some(TopLevelDecl::Struct(def)) => {
+                if let Some(existing) = structs.get(&def.name) {
+                    if existing.fields != def.fields {
+                        return Err(TypeError::DuplicateType {
+                            kind: "struct".to_string(),
+                            name: def.name.clone(),
+                        });
+                    }
+                } else {
+                    structs.insert(def.name.clone(), def);
+                }
+            }
+            Some(TopLevelDecl::Enum(def)) => {
+                if let Some(existing) = enums.get(&def.name) {
+                    if existing.variants.len() != def.variants.len() {
+                        return Err(TypeError::DuplicateType {
+                            kind: "enum".to_string(),
+                            name: def.name.clone(),
+                        });
+                    }
+                } else {
+                    enums.insert(def.name.clone(), def);
+                }
+            }
+            _ => {}
+        }
+    }
+    Ok(())
+}
+
 fn types_match(a: &Type, b: &Type) -> bool {
     a == b
 }
@@ -1212,7 +1284,7 @@ mod tests {
         let tokens = lex_file(src).unwrap();
         let mut parser = Parser::new(&tokens);
         let program = parser.parse_program().unwrap();
-        check_program(&program)
+        check_program_with_hosts(&program, &[])
     }
 
     #[test]
