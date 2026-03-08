@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{Param, Program, TopLevelDecl, Type};
+use crate::ast::{EnumDecl, EnumVariant, Param, Program, StructDecl, TopLevelDecl, Type};
 use crate::compiler::CompileError;
 use crate::lexer::{LexError, lex_file};
 use crate::parser::{ParseError, Parser};
@@ -10,6 +10,7 @@ use crate::typing::{TypedProgram, check_program};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SymbolKind {
     Function,
+    Parameter,
     Local,
     Struct,
     Enum,
@@ -40,6 +41,7 @@ pub struct AnalysisDiagnostic {
 pub struct FunctionSymbol {
     pub name: String,
     pub name_span: Span,
+    pub full_span: Span,
     pub body_span: Span,
     pub signature: String,
 }
@@ -106,10 +108,15 @@ pub fn symbol_at(source: &str, offset: usize) -> Result<Option<SymbolInfo>, Comp
     let index = SymbolIndex::from_tokens(&checked.tokens, &checked.program);
     if let Some(function_name) = index.function_name_for_offset(offset) {
         if let Some(function) = checked.typed.function_infos.get(function_name) {
-            if let Some((_, ty)) = function.local_map.get(name) {
+            if let Some((slot, ty)) = function.local_map.get(name) {
+                let kind = if (*slot as usize) < function.params.len() {
+                    SymbolKind::Parameter
+                } else {
+                    SymbolKind::Local
+                };
                 return Ok(Some(SymbolInfo {
                     name: name.clone(),
-                    kind: SymbolKind::Local,
+                    kind,
                     detail: format!("{}: {}", name, ty),
                     span: token.span.clone(),
                 }));
@@ -130,7 +137,12 @@ pub fn symbol_at(source: &str, offset: usize) -> Result<Option<SymbolInfo>, Comp
         return Ok(Some(SymbolInfo {
             name: name.clone(),
             kind: SymbolKind::Struct,
-            detail: format!("struct {}", name),
+            detail: checked
+                .typed
+                .structs
+                .get(name)
+                .map(format_struct_decl)
+                .unwrap_or_else(|| format!("struct {}", name)),
             span: token.span.clone(),
         }));
     }
@@ -139,7 +151,12 @@ pub fn symbol_at(source: &str, offset: usize) -> Result<Option<SymbolInfo>, Comp
         return Ok(Some(SymbolInfo {
             name: name.clone(),
             kind: SymbolKind::Enum,
-            detail: format!("enum {}", name),
+            detail: checked
+                .typed
+                .enums
+                .get(name)
+                .map(format_enum_decl)
+                .unwrap_or_else(|| format!("enum {}", name)),
             span: token.span.clone(),
         }));
     }
@@ -168,7 +185,7 @@ impl SymbolIndex {
         while idx < tokens.len() {
             match &tokens[idx].kind {
                 TokenKind::Fn => {
-                    if let Some((name, name_span, body_span)) = scan_function(tokens, idx) {
+                    if let Some((name, name_span, full_span, body_span)) = scan_function(tokens, idx) {
                         let signature = function_signatures
                             .get(&name)
                             .cloned()
@@ -178,6 +195,7 @@ impl SymbolIndex {
                             FunctionSymbol {
                                 name,
                                 name_span,
+                                full_span,
                                 body_span,
                                 signature,
                             },
@@ -208,7 +226,7 @@ impl SymbolIndex {
 
     fn function_name_for_offset(&self, offset: usize) -> Option<&str> {
         self.functions.values().find_map(|function| {
-            if span_contains(&function.body_span, offset) {
+            if span_contains(&function.full_span, offset) {
                 Some(function.name.as_str())
             } else {
                 None
@@ -217,18 +235,22 @@ impl SymbolIndex {
     }
 }
 
-fn scan_function(tokens: &[Token], fn_idx: usize) -> Option<(String, Span, Span)> {
+fn scan_function(tokens: &[Token], fn_idx: usize) -> Option<(String, Span, Span, Span)> {
     let (name, name_span) = next_ident(tokens, fn_idx + 1)?;
     let body_start_idx = tokens[fn_idx..]
         .iter()
         .position(|token| token.kind == TokenKind::LBrace)
         .map(|rel| fn_idx + rel)?;
     let body_end_idx = find_matching_brace(tokens, body_start_idx)?;
+    let full_span = Span {
+        start: tokens[fn_idx].span.start,
+        end: tokens[body_end_idx].span.end,
+    };
     let body_span = Span {
         start: tokens[body_start_idx].span.start,
         end: tokens[body_end_idx].span.end,
     };
-    Some((name, name_span, body_span))
+    Some((name, name_span, full_span, body_span))
 }
 
 fn find_matching_brace(tokens: &[Token], open_idx: usize) -> Option<usize> {
@@ -264,6 +286,41 @@ fn format_function_signature(name: &str, params: &[Param], return_type: &Type) -
     format!("fn {}({}) -> {}", name, params, return_type)
 }
 
+fn format_struct_decl(def: &StructDecl) -> String {
+    let fields = def
+        .fields
+        .iter()
+        .map(|(name, ty)| format!("{}: {}", name, ty))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("struct {} {{ {} }}", def.name, fields)
+}
+
+fn format_enum_decl(def: &EnumDecl) -> String {
+    let variants = def
+        .variants
+        .iter()
+        .map(format_enum_variant)
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("enum {} {{ {} }}", def.name, variants)
+}
+
+fn format_enum_variant(variant: &EnumVariant) -> String {
+    match variant {
+        EnumVariant::Unit(name) => name.clone(),
+        EnumVariant::Tuple(name, ty) => format!("{}({})", name, ty),
+        EnumVariant::Struct(name, fields) => {
+            let fields = fields
+                .iter()
+                .map(|(field, ty)| format!("{}: {}", field, ty))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("{} {{ {} }}", name, fields)
+        }
+    }
+}
+
 fn span_contains(span: &Span, offset: usize) -> bool {
     span.start <= offset && offset < span.end
 }
@@ -295,6 +352,15 @@ mod tests {
     }
 
     #[test]
+    fn hover_marks_parameters_separately() {
+        let src = "fn main(x: Int) -> Int { return x; }";
+        let offset = src.find("x: Int").expect("missing x");
+        let symbol = symbol_at(src, offset).expect("analysis failed").expect("missing symbol");
+        assert_eq!(symbol.kind, SymbolKind::Parameter);
+        assert_eq!(symbol.detail, "x: Int");
+    }
+
+    #[test]
     fn hover_finds_function_signature() {
         let src = "fn inc(x: Int) -> Int { return x; } fn main() -> Int { return inc(1); }";
         let offset = src.rfind("inc").expect("missing inc");
@@ -308,6 +374,24 @@ mod tests {
         let diagnostic = analyze_diagnostic("fn main( -> Int { return 1; }").expect("expected diagnostic");
         assert!(diagnostic.message.contains("unexpected token"));
         assert!(diagnostic.span.is_some());
+    }
+
+    #[test]
+    fn hover_formats_structs() {
+        let src = "struct Point { x: Int, y: Int } fn main() -> Int { return 0; }";
+        let offset = src.find("Point").expect("missing Point");
+        let symbol = symbol_at(src, offset).expect("analysis failed").expect("missing symbol");
+        assert_eq!(symbol.kind, SymbolKind::Struct);
+        assert_eq!(symbol.detail, "struct Point { x: Int, y: Int }");
+    }
+
+    #[test]
+    fn hover_formats_enums() {
+        let src = "enum Result { Ok, Err(Int) } fn main() -> Int { return 0; }";
+        let offset = src.find("Result").expect("missing Result");
+        let symbol = symbol_at(src, offset).expect("analysis failed").expect("missing symbol");
+        assert_eq!(symbol.kind, SymbolKind::Enum);
+        assert_eq!(symbol.detail, "enum Result { Ok, Err(Int) }");
     }
 
     #[test]

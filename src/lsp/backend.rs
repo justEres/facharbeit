@@ -5,7 +5,8 @@ use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, Hover, HoverContents, HoverParams, HoverProviderCapability,
-    InitializeParams, InitializeResult, MarkedString, MessageType, Position, Range,
+    InitializeParams, InitializeResult, LanguageString, MarkedString, MessageType, Position,
+    Range,
     ServerCapabilities, TextDocumentContentChangeEvent, TextDocumentSyncCapability,
     TextDocumentSyncKind, Url,
 };
@@ -153,16 +154,20 @@ impl LanguageServer for Backend {
 
         let label = match symbol.kind {
             SymbolKind::Function => "Function",
+            SymbolKind::Parameter => "Parameter",
             SymbolKind::Local => "Local",
             SymbolKind::Struct => "Struct",
             SymbolKind::Enum => "Enum",
         };
 
         Ok(Some(Hover {
-            contents: HoverContents::Scalar(MarkedString::String(format!(
-                "{}\n{}",
-                label, symbol.detail
-            ))),
+            contents: HoverContents::Array(vec![
+                MarkedString::String(label.to_string()),
+                MarkedString::LanguageString(LanguageString {
+                    language: "eres".to_string(),
+                    value: symbol.detail.clone(),
+                }),
+            ]),
             range: Some(span_to_range(symbol.span, &document.source_map)),
         }))
     }
