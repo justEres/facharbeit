@@ -38,6 +38,15 @@ pub struct CompletionItemInfo {
     pub detail: String,
 }
 
+#[derive(Debug, Clone)]
+pub struct DocumentSymbolInfo {
+    pub name: String,
+    pub kind: SymbolKind,
+    pub span: Span,
+    pub selection_span: Span,
+    pub children: Vec<DocumentSymbolInfo>,
+}
+
 #[derive(Debug)]
 pub struct CheckedSource {
     pub tokens: Vec<Token>,
@@ -237,6 +246,13 @@ pub fn definition_at(source: &str, offset: usize) -> Result<Option<DefinitionInf
 }
 
 pub fn completions_at(source: &str, offset: usize) -> Result<Vec<CompletionItemInfo>, CompileError> {
+    if let Ok(Some(items)) = complete_enum_variants(source, offset) {
+        return Ok(items);
+    }
+    if let Ok(Some(items)) = complete_methods(source, offset) {
+        return Ok(items);
+    }
+
     let checked = check(source)?;
     let index = SymbolIndex::from_tokens(&checked.tokens, &checked.program);
     let mut items = Vec::new();
@@ -286,6 +302,73 @@ pub fn completions_at(source: &str, offset: usize) -> Result<Vec<CompletionItemI
 
     items.sort_by(|left, right| left.label.cmp(&right.label).then(left.detail.cmp(&right.detail)));
     items.dedup_by(|left, right| left.label == right.label && left.kind == right.kind);
+    Ok(items)
+}
+
+pub fn document_symbols(source: &str) -> Result<Vec<DocumentSymbolInfo>, CompileError> {
+    let checked = check(source)?;
+    let index = SymbolIndex::from_tokens(&checked.tokens, &checked.program);
+    let mut items = Vec::new();
+
+    for item in &checked.program.items {
+        match item {
+            TopLevelDecl::Function(function) => {
+                if let Some(symbol) = index.functions.get(&function.name) {
+                    let mut children = Vec::new();
+                    for param in &function.params {
+                        if let Some(span) = symbol.params.get(&param.name) {
+                            children.push(DocumentSymbolInfo {
+                                name: param.name.clone(),
+                                kind: SymbolKind::Parameter,
+                                span: span.clone(),
+                                selection_span: span.clone(),
+                                children: Vec::new(),
+                            });
+                        }
+                    }
+                    for (name, span) in &symbol.locals {
+                        children.push(DocumentSymbolInfo {
+                            name: name.clone(),
+                            kind: SymbolKind::Local,
+                            span: span.clone(),
+                            selection_span: span.clone(),
+                            children: Vec::new(),
+                        });
+                    }
+                    items.push(DocumentSymbolInfo {
+                        name: function.name.clone(),
+                        kind: SymbolKind::Function,
+                        span: symbol.full_span.clone(),
+                        selection_span: symbol.name_span.clone(),
+                        children,
+                    });
+                }
+            }
+            TopLevelDecl::Struct(def) => {
+                if let Some(span) = index.structs.get(&def.name) {
+                    items.push(DocumentSymbolInfo {
+                        name: def.name.clone(),
+                        kind: SymbolKind::Struct,
+                        span: span.clone(),
+                        selection_span: span.clone(),
+                        children: Vec::new(),
+                    });
+                }
+            }
+            TopLevelDecl::Enum(def) => {
+                if let Some(span) = index.enums.get(&def.name) {
+                    items.push(DocumentSymbolInfo {
+                        name: def.name.clone(),
+                        kind: SymbolKind::Enum,
+                        span: span.clone(),
+                        selection_span: span.clone(),
+                        children: Vec::new(),
+                    });
+                }
+            }
+        }
+    }
+
     Ok(items)
 }
 
@@ -412,6 +495,139 @@ fn find_ident_at_offset(tokens: &[Token], offset: usize) -> Option<&Token> {
     })
 }
 
+enum CompletionContext {
+    EnumVariant,
+    Method,
+}
+
+fn repair_source_for_completion(
+    source: &str,
+    offset: usize,
+    context: CompletionContext,
+) -> Result<String, CompileError> {
+    let prefix = &source[..offset.min(source.len())];
+    match context {
+        CompletionContext::EnumVariant if prefix.ends_with("::") => {
+            let mut repaired = source.to_string();
+            repaired.insert_str(offset, "__codex_variant");
+            Ok(repaired)
+        }
+        CompletionContext::Method if prefix.ends_with('.') => {
+            let mut repaired = source.to_string();
+            repaired.insert_str(offset, "len()");
+            Ok(repaired)
+        }
+        _ => Err(CompileError::Parse(ParseError::ExpectedExpression {
+            span: Span { start: offset, end: offset },
+        })),
+    }
+}
+
+fn rename_main_for_analysis(source: &str) -> String {
+    source.replace("fn main(", "fn m__n(")
+}
+
+fn token_index_before_cursor(tokens: &[Token], offset: usize) -> Option<usize> {
+    tokens
+        .iter()
+        .enumerate()
+        .take_while(|(_, token)| token.span.end <= offset)
+        .map(|(idx, _)| idx)
+        .last()
+}
+
+fn complete_enum_variants(
+    source: &str,
+    offset: usize,
+) -> Result<Option<Vec<CompletionItemInfo>>, CompileError> {
+    let repaired = repair_source_for_completion(source, offset, CompletionContext::EnumVariant)?;
+    let program = parse(&repaired)?;
+    let tokens = lex_file(&repaired).map_err(CompileError::Lex)?;
+    let token_idx = match token_index_before_cursor(&tokens, offset) {
+        Some(idx) if tokens.get(idx).is_some_and(|token| token.kind == TokenKind::DoubleColon) => idx,
+        _ => return Ok(None),
+    };
+    let prev_idx = match token_idx.checked_sub(1) {
+        Some(idx) => idx,
+        None => return Ok(None),
+    };
+    let enum_name = match tokens.get(prev_idx).map(|token| token.kind.clone()) {
+        Some(TokenKind::Ident(name)) => name,
+        _ => return Ok(None),
+    };
+    let enum_def = program.items.iter().find_map(|item| match item {
+        TopLevelDecl::Enum(def) if def.name == enum_name => Some(def),
+        _ => None,
+    });
+    Ok(enum_def.map(|def| {
+        def
+            .variants
+            .iter()
+            .map(|variant| CompletionItemInfo {
+                label: enum_variant_name(variant),
+                kind: SymbolKind::Enum,
+                detail: format!("{}::{}", enum_name, format_enum_variant(variant)),
+            })
+            .collect()
+    }))
+}
+
+fn complete_methods(source: &str, offset: usize) -> Result<Option<Vec<CompletionItemInfo>>, CompileError> {
+    let repaired = repair_source_for_completion(source, offset, CompletionContext::Method)?;
+    let checked = check(&rename_main_for_analysis(&repaired))?;
+    let index = SymbolIndex::from_tokens(&checked.tokens, &checked.program);
+    let token_idx = match token_index_before_cursor(&checked.tokens, offset) {
+        Some(idx) if checked.tokens.get(idx).is_some_and(|token| token.kind == TokenKind::Dot) => idx,
+        _ => return Ok(None),
+    };
+    let prev_idx = match token_idx.checked_sub(1) {
+        Some(idx) => idx,
+        None => return Ok(None),
+    };
+    let receiver_name = match checked.tokens.get(prev_idx).map(|token| token.kind.clone()) {
+        Some(TokenKind::Ident(name)) => name,
+        _ => return Ok(None),
+    };
+    let function_name = match index.function_name_for_offset(offset) {
+        Some(name) => name,
+        None => return Ok(None),
+    };
+    let function = match checked.typed.function_infos.get(function_name) {
+        Some(function) => function,
+        None => return Ok(None),
+    };
+    let (_, receiver_ty) = match function.local_map.get(&receiver_name) {
+        Some(info) => info,
+        None => return Ok(None),
+    };
+
+    Ok(match receiver_ty {
+        Type::List(inner) => Some(vec![
+            CompletionItemInfo {
+                label: "len".to_string(),
+                kind: SymbolKind::Function,
+                detail: "len() -> Int".to_string(),
+            },
+            CompletionItemInfo {
+                label: "get".to_string(),
+                kind: SymbolKind::Function,
+                detail: format!("get(index: Int) -> {}", inner),
+            },
+            CompletionItemInfo {
+                label: "push".to_string(),
+                kind: SymbolKind::Function,
+                detail: format!("push(value: {}) -> Unit", inner),
+            },
+            CompletionItemInfo {
+                label: "pop".to_string(),
+                kind: SymbolKind::Function,
+                detail: format!("pop() -> {}", inner),
+            },
+        ]),
+        _ => None,
+    })
+}
+
 fn scan_params(tokens: &[Token], fn_idx: usize, body_start_idx: usize) -> HashMap<String, Span> {
     let mut params = HashMap::new();
     let mut paren_depth = 0usize;
@@ -494,6 +710,14 @@ fn format_enum_variant(variant: &EnumVariant) -> String {
     }
 }
 
+fn enum_variant_name(variant: &EnumVariant) -> String {
+    match variant {
+        EnumVariant::Unit(name) | EnumVariant::Tuple(name, _) | EnumVariant::Struct(name, _) => {
+            name.clone()
+        }
+    }
+}
+
 fn span_contains(span: &Span, offset: usize) -> bool {
     span.start <= offset && offset < span.end
 }
@@ -513,7 +737,10 @@ fn parse_error_span(error: &ParseError) -> Span {
 
 #[cfg(test)]
 mod tests {
-    use super::{SymbolKind, analyze_diagnostic, check, completions_at, definition_at, symbol_at};
+    use super::{
+        SymbolKind, analyze_diagnostic, check, completions_at, definition_at, document_symbols,
+        symbol_at,
+    };
 
     #[test]
     fn hover_finds_local_variable_type() {
@@ -599,6 +826,37 @@ mod tests {
         assert!(completions.iter().any(|item| item.label == "y" && item.kind == SymbolKind::Local));
         assert!(completions.iter().any(|item| item.label == "helper" && item.kind == SymbolKind::Function));
         assert!(completions.iter().any(|item| item.label == "Point" && item.kind == SymbolKind::Struct));
+    }
+
+    #[test]
+    fn completions_include_enum_variants_after_double_colon() {
+        let src = "enum Result { Ok, Err(Int) } fn main() -> Int { let v = Result::; return 0; }";
+        let offset = src.find("::").expect("missing ::") + 2;
+        let completions = completions_at(src, offset).expect("analysis failed");
+        assert!(completions.iter().any(|item| item.label == "Ok"));
+        assert!(completions.iter().any(|item| item.label == "Err"));
+    }
+
+    #[test]
+    fn completions_include_list_methods_after_dot() {
+        let src = "fn main(xs: List<Int>) -> Int { return xs.; }";
+        let offset = src.find('.').expect("missing dot") + 1;
+        let completions = completions_at(src, offset).expect("analysis failed");
+        assert!(completions.iter().any(|item| item.label == "len"));
+        assert!(completions.iter().any(|item| item.label == "get"));
+    }
+
+    #[test]
+    fn document_symbols_include_top_level_items_and_function_children() {
+        let src = "struct Point { x: Int } fn main(x: Int) -> Int { let y = x; return y; }";
+        let symbols = document_symbols(src).expect("analysis failed");
+        assert!(symbols.iter().any(|item| item.name == "Point" && item.kind == SymbolKind::Struct));
+        let main = symbols
+            .iter()
+            .find(|item| item.name == "main" && item.kind == SymbolKind::Function)
+            .expect("missing main");
+        assert!(main.children.iter().any(|child| child.name == "x" && child.kind == SymbolKind::Parameter));
+        assert!(main.children.iter().any(|child| child.name == "y" && child.kind == SymbolKind::Local));
     }
 
     #[test]

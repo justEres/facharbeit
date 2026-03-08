@@ -40,6 +40,9 @@ The extension starts the language server in one of two ways:
   - parameters
   - local variables
   - structs and enums
+  - enum variants after `EnumName::`
+  - list methods after `.`
+- Document Symbols / Outline for top-level items and function-local symbols
 
 ## Logs
 

@@ -4,6 +4,7 @@ use tokio::sync::RwLock;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::{
     CompletionItem, CompletionItemKind, CompletionOptions, CompletionParams, CompletionResponse,
+    DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse,
     GotoDefinitionParams, GotoDefinitionResponse, Location,
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
     DidOpenTextDocumentParams, Hover, HoverContents, HoverParams, HoverProviderCapability,
@@ -14,7 +15,10 @@ use tower_lsp::lsp_types::{
 };
 use tower_lsp::{Client, LanguageServer, LspService, Server};
 
-use crate::analysis::{SymbolKind, analyze_diagnostic, completions_at, definition_at, symbol_at};
+use crate::analysis::{
+    DocumentSymbolInfo, SymbolKind, analyze_diagnostic, completions_at, definition_at,
+    document_symbols, symbol_at,
+};
 use crate::lsp::source_map::SourceMap;
 use crate::token::Span;
 
@@ -89,6 +93,7 @@ impl LanguageServer for Backend {
                 hover_provider: Some(HoverProviderCapability::Simple(true)),
                 definition_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
                 completion_provider: Some(CompletionOptions::default()),
+                document_symbol_provider: Some(tower_lsp::lsp_types::OneOf::Left(true)),
                 ..ServerCapabilities::default()
             },
             ..InitializeResult::default()
@@ -236,6 +241,29 @@ impl LanguageServer for Backend {
                 .collect(),
         )))
     }
+
+    async fn document_symbol(
+        &self,
+        params: DocumentSymbolParams,
+    ) -> Result<Option<DocumentSymbolResponse>> {
+        let uri = params.text_document.uri;
+        let docs = self.documents.read().await;
+        let Some(document) = docs.get(&uri) else {
+            return Ok(None);
+        };
+
+        let symbols = match document_symbols(&document.source) {
+            Ok(symbols) => symbols,
+            Err(_) => return Ok(None),
+        };
+
+        Ok(Some(DocumentSymbolResponse::Nested(
+            symbols
+                .into_iter()
+                .map(|symbol| to_lsp_document_symbol(symbol, &document.source_map))
+                .collect(),
+        )))
+    }
 }
 
 pub async fn serve() {
@@ -267,5 +295,35 @@ fn symbol_kind_to_completion_kind(kind: SymbolKind) -> CompletionItemKind {
         SymbolKind::Local => CompletionItemKind::VARIABLE,
         SymbolKind::Struct => CompletionItemKind::STRUCT,
         SymbolKind::Enum => CompletionItemKind::ENUM,
+    }
+}
+
+fn symbol_kind_to_document_symbol_kind(kind: SymbolKind) -> tower_lsp::lsp_types::SymbolKind {
+    match kind {
+        SymbolKind::Function => tower_lsp::lsp_types::SymbolKind::FUNCTION,
+        SymbolKind::Parameter => tower_lsp::lsp_types::SymbolKind::VARIABLE,
+        SymbolKind::Local => tower_lsp::lsp_types::SymbolKind::VARIABLE,
+        SymbolKind::Struct => tower_lsp::lsp_types::SymbolKind::STRUCT,
+        SymbolKind::Enum => tower_lsp::lsp_types::SymbolKind::ENUM,
+    }
+}
+
+#[allow(deprecated)]
+fn to_lsp_document_symbol(symbol: DocumentSymbolInfo, source_map: &SourceMap) -> DocumentSymbol {
+    DocumentSymbol {
+        name: symbol.name,
+        detail: None,
+        kind: symbol_kind_to_document_symbol_kind(symbol.kind),
+        tags: None,
+        deprecated: None,
+        range: span_to_range(symbol.span, source_map),
+        selection_range: span_to_range(symbol.selection_span, source_map),
+        children: Some(
+            symbol
+                .children
+                .into_iter()
+                .map(|child| to_lsp_document_symbol(child, source_map))
+                .collect(),
+        ),
     }
 }
