@@ -1,0 +1,60 @@
+{
+  "name": "eres-vscode",
+  "displayName": "eres",
+  "description": "VS Code support for the eres language",
+  "version": "0.0.1",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "onLanguage:eres"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "eres",
+        "aliases": [
+          "eres"
+        ],
+        "extensions": [
+          ".eres"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "eres",
+        "scopeName": "source.eres",
+        "path": "./syntaxes/eres.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "eres",
+      "properties": {
+        "eres.languageServer.path": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the eres language server binary. If empty, the extension starts `cargo run --bin eres-lsp` from the workspace root."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.95.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

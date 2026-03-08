@@ -2,20 +2,10 @@ use clap::Parser;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-use crate::compiler::CompileError;
-use crate::compiler::CompileArtifacts;
-use crate::compiler::compile_source;
-use crate::lexer::report_lex_error;
-use crate::parser::report_parse_error;
-
-mod ast;
-mod codegen;
-mod compiler;
-mod diagnostics;
-mod lexer;
-mod parser;
-mod runner;
-mod token;
+use facharbeit::compiler::{CompileArtifacts, CompileError, compile_source, compile_source_check};
+use facharbeit::lexer::report_lex_error;
+use facharbeit::parser::report_parse_error;
+use facharbeit::runner;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -81,7 +71,11 @@ fn main() {
     };
     let src = std::fs::read_to_string(input).expect("Failed to read input file");
 
-    let compile_out = match compile_source(&src) {
+    let compile_out = match if args.check {
+        compile_source_check(&src)
+    } else {
+        compile_source(&src)
+    } {
         Ok(out) => out,
         Err(CompileError::Lex(e)) => {
             report_lex_error(&src, e);
@@ -91,8 +85,16 @@ fn main() {
             report_parse_error(&src, &e);
             return;
         }
+        Err(CompileError::TypeCheck(e)) => {
+            eprintln!("TypeCheckError [E-TC01]: {}", e);
+            return;
+        }
         Err(CompileError::Codegen(e)) => {
-            eprintln!("CodegenError [E-CG01]: {}", e);
+            if args.check {
+                eprintln!("TypeCheckError [E-TC01]: {}", e);
+            } else {
+                eprintln!("CodegenError [E-CG01]: {}", e);
+            }
             return;
         }
     };
@@ -129,7 +131,11 @@ fn run_repl(args: &Args) {
         }
 
         let repl_src = normalize_repl_input(src);
-        let compile_out = match compile_source(&repl_src) {
+        let compile_out = match if args.check {
+            compile_source_check(&repl_src)
+        } else {
+            compile_source(&repl_src)
+        } {
             Ok(out) => out,
             Err(CompileError::Lex(e)) => {
                 report_lex_error(&repl_src, e);
@@ -137,6 +143,10 @@ fn run_repl(args: &Args) {
             }
             Err(CompileError::Parse(e)) => {
                 report_parse_error(&repl_src, &e);
+                continue;
+            }
+            Err(CompileError::TypeCheck(e)) => {
+                eprintln!("TypeCheckError [E-TC01]: {}", e);
                 continue;
             }
             Err(CompileError::Codegen(e)) => {
@@ -174,9 +184,16 @@ fn handle_compiled_output(args: &Args, compile_out: &CompileArtifacts) -> bool {
         println!("AST:\n{:#?}", compile_out.program);
     }
 
-    let wat = wasmprinter::print_bytes(&compile_out.bytes).unwrap();
+    let wat = if compile_out.bytes.is_empty() {
+        None
+    } else {
+        Some(wasmprinter::print_bytes(&compile_out.bytes).unwrap())
+    };
     if args.print_wat {
-        println!("Generated WAT:\n{}", wat);
+        match wat {
+            Some(ref w) => println!("Generated WAT:\n{}", w),
+            None => println!("No WAT generated in check mode"),
+        }
     }
 
     if let Some(path) = &args.emit_tokens {
@@ -193,9 +210,19 @@ fn handle_compiled_output(args: &Args, compile_out: &CompileArtifacts) -> bool {
             return false;
         }
     }
-    if let Some(path) = &args.emit_wat && let Err(e) = std::fs::write(path, &wat) {
-        eprintln!("Failed to write {}: {}", path.display(), e);
-        return false;
+    if let Some(path) = &args.emit_wat {
+        match &wat {
+            Some(w) => {
+                if let Err(e) = std::fs::write(path, w) {
+                    eprintln!("Failed to write {}: {}", path.display(), e);
+                    return false;
+                }
+            }
+            None => {
+                eprintln!("No WAT emitted in check mode, use codegen mode to write --emit-wat");
+                return false;
+            }
+        }
     }
     if let Some(path) = &args.emit_wasm && let Err(e) = std::fs::write(path, &compile_out.bytes) {
         eprintln!("Failed to write {}: {}", path.display(), e);

@@ -232,3 +232,28 @@ fn pair() -> (Int, Float) { return (1, 2.0); }
 ## Tooling Backlog
 
 1. `.eres` Formatter (`fmt`-Subcommand) bauen, damit Code-Stil automatisch vereinheitlicht wird.
+
+## VS Code Support
+
+Es gibt jetzt eine erste VS-Code-Integration unter `editors/vscode`:
+
+- TextMate-Syntax-Highlighting fuer `.eres`
+- Language-Configuration fuer Kommentare/Klammern
+- LSP-Client fuer Diagnosen und Hover
+
+Language Server lokal starten:
+
+```bash
+cargo run --bin eres-lsp
+```
+
+Extension bauen:
+
+```bash
+cd editors/vscode
+npm install
+npm run build
+```
+
+Standardmaessig startet die Extension den Server ueber `cargo run --quiet --bin eres-lsp`
+im Workspace-Root. Alternativ kann `eres.languageServer.path` auf ein gebautes Binary zeigen.
