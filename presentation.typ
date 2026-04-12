@@ -19,20 +19,6 @@
   ),
 )
 
-#show: codly-init.with()
-
-#codly(
-  fill: panel,
-  radius: 10pt,
-  stroke: none,
-  inset: 12pt,
-  languages: (
-    rust: (name: "Rust", color: rgb("#f08d49")),
-    bash: (name: "Shell", color: rgb("#8fd18a")),
-    wat: (name: "WAT", color: rgb("#c48cff")),
-  ),
-)
-
 #set page(
   fill: bg,
   margin: (x: 1.3cm, y: 1.0cm),
@@ -77,8 +63,34 @@
   radius: 14pt,
   inset: 16pt,
 )[#body]
+#let outline-card(body) = rect(
+  fill: panel,
+  stroke: (paint: rgb("#253754"), thickness: 0.8pt),
+  radius: 14pt,
+  inset: 12pt,
+)[#body]
+#let code-example(body) = [
+  #show: codly-init.with()
+  #show raw.where(block: true): set text(size: 10pt, fill: text-main)
+  #codly(
+    fill: panel,
+    radius: 10pt,
+    stroke: 0.6pt + rgb("#24344d"),
+    inset: 10pt,
+    zebra-fill: none,
+    number-format: none,
+    languages: (
+      rust: (name: "Rust", color: rgb("#f08d49")),
+      bash: (name: "Shell", color: rgb("#8fd18a")),
+      wat: (name: "WAT", color: rgb("#c48cff")),
+    ),
+  )
+  #box(width: 69%)[
+    #body
+  ]
+]
 
-#slide[
+#empty-slide[
   #v(0.34fr)
   #meta[PRÄSENTATION]
   #v(0.45em)
@@ -89,53 +101,53 @@
   #text(size: 14pt, fill: text-muted)[Erik Tschöpe]
 ]
 
-#slide[
-  #v(0.18fr)
+#empty-slide[
+  #v(0.14fr)
   #meta[STRUKTUR]
-  #v(0.35em)
-  #text(size: 28pt, weight: "bold")[Gliederung]
-  #v(0.8em)
+  #v(0.28em)
+  #text(size: 25pt, weight: "bold")[Gliederung]
+  #v(0.7em)
   #grid(
     columns: (1fr, 1fr, 1fr, 1fr),
-    gutter: 14pt,
-    card([
-      #text(size: 14pt, fill: accent, weight: "bold")[01 Einstieg]
-      #v(0.35em)
-      #text(size: 16pt)[Warum überhaupt?]
+    gutter: 10pt,
+    outline-card([
+      #text(size: 12pt, fill: accent, weight: "bold")[01 Einstieg]
+      #v(0.25em)
+      #text(size: 13pt)[Warum überhaupt?]
       #linebreak()
-      #text(size: 16pt)[Leitfrage]
+      #text(size: 13pt)[Leitfrage]
     ]),
-    card([
-      #text(size: 14pt, fill: accent, weight: "bold")[02 Grundlagen]
-      #v(0.35em)
-      #text(size: 16pt)[Compiler]
+    outline-card([
+      #text(size: 12pt, fill: accent, weight: "bold")[02 Grundlagen]
+      #v(0.25em)
+      #text(size: 13pt)[Compiler]
       #linebreak()
-      #text(size: 16pt)[Frontend und Backend]
+      #text(size: 13pt)[Frontend und Backend]
       #linebreak()
-      #text(size: 16pt)[Warum WebAssembly?]
+      #text(size: 13pt)[Warum WebAssembly?]
     ]),
-    card([
-      #text(size: 14pt, fill: accent, weight: "bold")[03 Selbstversuch]
-      #v(0.35em)
-      #text(size: 16pt)[Ziel des Projekts]
+    outline-card([
+      #text(size: 12pt, fill: accent, weight: "bold")[03 Selbstversuch]
+      #v(0.25em)
+      #text(size: 13pt)[Ziel des Projekts]
       #linebreak()
-      #text(size: 16pt)[Sprache, Lexer, Parser]
+      #text(size: 13pt)[Sprache, Lexer, Parser]
       #linebreak()
-      #text(size: 16pt)[Codegen und Ausführung]
+      #text(size: 13pt)[Codegen und Ausführung]
     ]),
-    card([
-      #text(size: 14pt, fill: accent, weight: "bold")[04 Bewertung]
-      #v(0.35em)
-      #text(size: 16pt)[Vereinfachungen]
+    outline-card([
+      #text(size: 12pt, fill: accent, weight: "bold")[04 Bewertung]
+      #v(0.25em)
+      #text(size: 13pt)[Vereinfachungen]
       #linebreak()
-      #text(size: 16pt)[Bleibende Komplexität]
+      #text(size: 13pt)[Bleibende Komplexität]
       #linebreak()
-      #text(size: 16pt)[Fazit und Fragen]
+      #text(size: 13pt)[Fazit und Fragen]
     ]),
   )
 ]
 
-= Einstieg
+= Einstieg <touying:hidden>
 
 == Warum überhaupt ein eigener Compiler?
 
@@ -145,7 +157,7 @@ Compiler wirken oft wie ein Thema für große Teams oder Universitäten. Genau d
 
 Im Zentrum steht die Frage, ob WebAssembly den Bau eigener Compiler für Amateurentwickler spürbar erleichtert. Dabei geht es nicht darum, ob Compiler plötzlich einfach werden. Es geht darum, ob die schwierigste technische Hürde kleiner wird.
 
-= Grundlagen
+= Grundlagen <touying:hidden>
 
 == Was macht ein Compiler?
 
@@ -159,7 +171,7 @@ Im Frontend wird der Quelltext verstanden, also in Tokens, Syntax und Bedeutung 
 
 WebAssembly ist ein standardisiertes, plattformunabhängiges Zielformat. Dadurch muss ich nicht direkt nativen Maschinencode für verschiedene Systeme erzeugen. Für Hobbyprojekte ist genau das attraktiv, weil viele Plattformdetails aus dem eigenen Compiler verschwinden.
 
-= Selbstversuch
+= Selbstversuch <touying:hidden>
 
 == Ziel des Projekts
 
@@ -173,17 +185,20 @@ Die Sprache ist bewusst klein gehalten und konzentriert sich auf Funktionen, Var
 
 Der Lexer ist der erste technische Schritt und zerlegt den Quelltext in Tokens. Hier entscheidet sich, ob aus bloßen Zeichen sinnvolle Bausteine wie Schlüsselwörter, Namen und Operatoren werden. Der Schritt ist noch relativ mechanisch, aber absolut grundlegend für alles Weitere.
 
+#code-example[
 ```rust
 fn main() {
     let value = 42;
     print(value);
 }
 ```
+]
 
 == Parser
 
 Der Parser baut aus diesen Tokens eine Struktur, die die Grammatik des Programms sichtbar macht. Erst hier wird also klar, was zusammengehört und wie Ausdrücke gebunden sind. Besonders wichtig war dabei die Behandlung von Blöcken, Funktionsdefinitionen und Operator-Präzedenz.
 
+#code-example[
 ```rust
 fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
     self.expect(TokenKind::Fn)?;
@@ -192,11 +207,13 @@ fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
     Ok(FunctionDecl { name, body, params: vec![], return_type: None })
 }
 ```
+]
 
 == Codegen nach WebAssembly
 
 Im Codegen wird aus der abstrakten Programmstruktur schließlich WebAssembly. Genau hier liegt der Kern meiner Leitfrage, denn ich musste keinen nativen Zielcode für eine konkrete CPU erzeugen. Stattdessen übersetzt der Compiler in ein kompaktes, validierbares Zwischenformat mit klaren Regeln.
 
+#code-example[
 ```wat
 (func (export "main")
   i64.const 7
@@ -205,17 +222,20 @@ Im Codegen wird aus der abstrakten Programmstruktur schließlich WebAssembly. Ge
   call 0
 )
 ```
+]
 
 == Ausführung mit Wasmtime
 
 Der generierte Code wurde nicht nur erzeugt, sondern auch direkt ausgeführt. Dafür habe ich Wasmtime als Laufzeit genutzt und eine Host-Funktion für `print` eingebunden. So lässt sich am Ende überprüfen, ob aus dem eigenen Quellcode wirklich ein funktionierendes Programm geworden ist.
 
+#code-example[
 ```bash
 cargo run -- factorial.eres --print-wat
 cargo run -- factorial.eres
 ```
+]
 
-= Bewertung
+= Bewertung <touying:hidden>
 
 == Was WebAssembly vereinfacht
 
@@ -229,7 +249,7 @@ Die eigentliche Denkarbeit verschwindet trotzdem nicht. Lexer, Parser, Fehlerbeh
 
 Mein Ergebnis ist deshalb weder ein blindes Ja noch ein Nein. WebAssembly erleichtert den Einstieg deutlich, aber es ersetzt kein Verständnis für Compilerbau. Für Amateurentwickler wird das Ziel realistischer, jedoch nicht trivial.
 
-= Abschluss
+= Abschluss <touying:hidden>
 
 == Fragen?
 
