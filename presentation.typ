@@ -21,13 +21,13 @@
 
 #set page(
   fill: bg,
-  margin: (x: 1.3cm, y: 1.0cm),
+  margin: (x: 1.15cm, y: 0.8cm),
 )
 
 #set text(
   font: "Noto Sans CJK JP",
   fill: text-main,
-  size: 22pt,
+  size: 19pt,
 )
 
 #set par(justify: false, leading: 0.9em)
@@ -37,9 +37,8 @@
   below: 0pt,
   fill: none,
 )[
-  #v(0.4fr)
   #text(size: 15pt, fill: accent, tracking: 0.08em, weight: "medium")[KAPITEL]
-  #v(0.35em)
+  #v(0.18em)
   #text(size: 32pt, weight: "bold", fill: text-main)[#it.body]
 ]
 
@@ -48,11 +47,10 @@
   below: 0pt,
   fill: none,
 )[
-  #v(0.55fr)
   #rect(width: 1.2cm, height: 0.09cm, radius: 999pt, fill: accent)
-  #v(0.45em)
+  #v(0.22em)
   #text(size: 28pt, weight: "bold", fill: text-main)[#it.body]
-  #v(0.45em)
+  #v(0.22em)
 ]
 
 #let meta(body) = text(size: 14pt, fill: text-muted, tracking: 0.07em, weight: "medium")[#body]
@@ -68,15 +66,26 @@
   stroke: (paint: rgb("#253754"), thickness: 0.8pt),
   radius: 14pt,
   inset: 12pt,
+  width: 100%,
+  height: 4.6cm,
 )[#body]
 #let code-example(body) = [
   #show: codly-init.with()
-  #show raw.where(block: true): set text(size: 10pt, fill: text-main)
+  #show raw.where(block: true): set text(
+    font: "Noto Sans Mono CJK JP",
+    size: 9.4pt,
+    fill: text-main,
+  )
+  #show raw.line: set text(
+    font: "Noto Sans Mono CJK JP",
+    size: 9.4pt,
+    fill: text-main,
+  )
   #codly(
     fill: panel,
     radius: 10pt,
     stroke: 0.6pt + rgb("#24344d"),
-    inset: 10pt,
+    inset: 8pt,
     zebra-fill: none,
     number-format: none,
     languages: (
@@ -85,64 +94,62 @@
       wat: (name: "WAT", color: rgb("#c48cff")),
     ),
   )
-  #box(width: 69%)[
+  #box(width: 76%)[
     #body
   ]
 ]
 
 #empty-slide[
-  #v(0.34fr)
   #meta[PRÄSENTATION]
-  #v(0.45em)
-  #text(size: 34pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
-  #v(0.5em)
+  #v(0.22em)
+  #text(size: 36pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
+  #v(0.32em)
   #lead[Von der wissenschaftlichen Arbeit zur deutlich direkteren Präsentation.]
-  #v(1.3em)
+  #v(0.85em)
   #text(size: 14pt, fill: text-muted)[Erik Tschöpe]
 ]
 
 #empty-slide[
-  #v(0.14fr)
   #meta[STRUKTUR]
   #v(0.28em)
-  #text(size: 25pt, weight: "bold")[Gliederung]
-  #v(0.7em)
+  #text(size: 24pt, weight: "bold")[Gliederung]
+  #v(0.5em)
   #grid(
     columns: (1fr, 1fr, 1fr, 1fr),
-    gutter: 10pt,
+    gutter: 12pt,
     outline-card([
       #text(size: 12pt, fill: accent, weight: "bold")[01 Einstieg]
       #v(0.25em)
-      #text(size: 13pt)[Warum überhaupt?]
+      #text(size: 12.5pt)[Warum überhaupt?]
       #linebreak()
-      #text(size: 13pt)[Leitfrage]
+      #text(size: 12.5pt)[Leitfrage]
     ]),
     outline-card([
       #text(size: 12pt, fill: accent, weight: "bold")[02 Grundlagen]
       #v(0.25em)
-      #text(size: 13pt)[Compiler]
+      #text(size: 12.5pt)[Compiler]
       #linebreak()
-      #text(size: 13pt)[Frontend und Backend]
+      #text(size: 12.5pt)[Frontend und Backend]
       #linebreak()
-      #text(size: 13pt)[Warum WebAssembly?]
+      #text(size: 12.5pt)[Warum WebAssembly?]
     ]),
     outline-card([
       #text(size: 12pt, fill: accent, weight: "bold")[03 Selbstversuch]
       #v(0.25em)
-      #text(size: 13pt)[Ziel des Projekts]
+      #text(size: 12.5pt)[Ziel des Projekts]
       #linebreak()
-      #text(size: 13pt)[Sprache, Lexer, Parser]
+      #text(size: 12.5pt)[Sprache, Lexer, Parser]
       #linebreak()
-      #text(size: 13pt)[Codegen und Ausführung]
+      #text(size: 12.5pt)[Codegen und Ausführung]
     ]),
     outline-card([
       #text(size: 12pt, fill: accent, weight: "bold")[04 Bewertung]
       #v(0.25em)
-      #text(size: 13pt)[Vereinfachungen]
+      #text(size: 12.5pt)[Vereinfachungen]
       #linebreak()
-      #text(size: 13pt)[Bleibende Komplexität]
+      #text(size: 12.5pt)[Bleibende Komplexität]
       #linebreak()
-      #text(size: 13pt)[Fazit und Fragen]
+      #text(size: 12.5pt)[Fazit und Fragen]
     ]),
   )
 ]
@@ -184,6 +191,7 @@ Die Sprache ist bewusst klein gehalten und konzentriert sich auf Funktionen, Var
 == Lexer
 
 Der Lexer ist der erste technische Schritt und zerlegt den Quelltext in Tokens. Hier entscheidet sich, ob aus bloßen Zeichen sinnvolle Bausteine wie Schlüsselwörter, Namen und Operatoren werden. Der Schritt ist noch relativ mechanisch, aber absolut grundlegend für alles Weitere.
+#v(0.35em)
 
 #code-example[
 ```rust
@@ -197,6 +205,7 @@ fn main() {
 == Parser
 
 Der Parser baut aus diesen Tokens eine Struktur, die die Grammatik des Programms sichtbar macht. Erst hier wird also klar, was zusammengehört und wie Ausdrücke gebunden sind. Besonders wichtig war dabei die Behandlung von Blöcken, Funktionsdefinitionen und Operator-Präzedenz.
+#v(0.35em)
 
 #code-example[
 ```rust
@@ -212,6 +221,7 @@ fn parse_function(&mut self) -> Result<FunctionDecl, ParseError> {
 == Codegen nach WebAssembly
 
 Im Codegen wird aus der abstrakten Programmstruktur schließlich WebAssembly. Genau hier liegt der Kern meiner Leitfrage, denn ich musste keinen nativen Zielcode für eine konkrete CPU erzeugen. Stattdessen übersetzt der Compiler in ein kompaktes, validierbares Zwischenformat mit klaren Regeln.
+#v(0.35em)
 
 #code-example[
 ```wat
@@ -227,6 +237,7 @@ Im Codegen wird aus der abstrakten Programmstruktur schließlich WebAssembly. Ge
 == Ausführung mit Wasmtime
 
 Der generierte Code wurde nicht nur erzeugt, sondern auch direkt ausgeführt. Dafür habe ich Wasmtime als Laufzeit genutzt und eine Host-Funktion für `print` eingebunden. So lässt sich am Ende überprüfen, ob aus dem eigenen Quellcode wirklich ein funktionierendes Programm geworden ist.
+#v(0.35em)
 
 #code-example[
 ```bash
