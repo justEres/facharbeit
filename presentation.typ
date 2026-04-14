@@ -90,7 +90,7 @@
   ]
 ]
 
-#let code-example(body, width: 82%) = block(width: width)[
+#let code-example(body, width: 74%) = block(width: width)[
   #show raw.where(block: true): set text(
     font: "Noto Sans Mono CJK JP",
     size: 13.2pt,
@@ -98,7 +98,7 @@
   )
   #show raw.where(block: true): set par(leading: 0.72em)
   #box(
-    inset: (x: 16pt, y: 12pt),
+    inset: (x: 14pt, y: 16pt),
     fill: panel,
     stroke: 0.6pt + rgb("#24344d"),
     radius: 10pt,
@@ -106,6 +106,100 @@
   )[
     #body
   ]
+]
+
+#let syntax-card(title, tone, body) = rect(
+  fill: panel,
+  stroke: 0.8pt + rgb("#253754"),
+  radius: 14pt,
+  inset: 14pt,
+  width: 100%,
+  height: 4.65cm,
+)[
+  #text(size: 12pt, fill: tone, weight: "bold", tracking: 0.05em)[#title]
+  #v(0.3em)
+  #show raw.where(block: true): set text(
+    font: "Noto Sans Mono CJK JP",
+    size: 11.2pt,
+    fill: text-main,
+  )
+  #show raw.where(block: true): set par(leading: 0.7em)
+  #body
+]
+
+#let scratch-chip(fill-color, label) = rect(
+  fill: fill-color,
+  radius: 999pt,
+  inset: (x: 10pt, y: 5pt),
+  width: 92%,
+)[
+  #text(size: 11pt, fill: rgb("#08101b"), weight: "bold")[#label]
+]
+
+#let scratch-card() = rect(
+  fill: panel,
+  stroke: 0.8pt + rgb("#253754"),
+  radius: 14pt,
+  inset: 14pt,
+  width: 100%,
+  height: 4.65cm,
+)[
+  #text(size: 12pt, fill: rgb("#ffb454"), weight: "bold", tracking: 0.05em)[SCRATCH]
+  #v(0.35em)
+  #stack(
+    spacing: 8pt,
+    scratch-chip(rgb("#ffab19"), [wenn grüne Flagge angeklickt]),
+    scratch-chip(rgb("#4c97ff"), [frage "Wie heißt du?" und warte]),
+    scratch-chip(rgb("#59c059"), [sage (Antwort) für 2 Sekunden]),
+  )
+]
+
+#let compiler-flow() = box(
+  width: 92%,
+  height: 5.4cm,
+  inset: 10pt,
+  fill: panel,
+  stroke: 0.6pt + rgb("#24344d"),
+  radius: 10pt,
+)[
+  #align(center + horizon)[
+    #set text(fill: text-main, size: 12.5pt)
+    #diagram(
+      cell-size: 14mm,
+      node-fill: rgb("#27456d"),
+      node-stroke: 1.3pt + accent,
+      edge-stroke: 1.4pt + accent,
+      node((0, 0), [Quelltext], name: <source>, width: 2.7cm, height: 1.0cm, corner-radius: 8pt),
+      node((1.6, 0), [Lexer], name: <lexer>, width: 2.2cm, height: 1.0cm, corner-radius: 8pt),
+      node((3.2, 0), [Parser], name: <parser>, width: 2.2cm, height: 1.0cm, corner-radius: 8pt),
+      node((4.8, 0), [Codegen], name: <codegen>, width: 2.4cm, height: 1.0cm, corner-radius: 8pt),
+      node((6.5, 0), [WebAssembly], name: <wasm>, width: 3.0cm, height: 1.0cm, corner-radius: 8pt),
+      edge(<source>, <lexer>, "->"),
+      edge(<lexer>, <parser>, "->"),
+      edge(<parser>, <codegen>, "->"),
+      edge(<codegen>, <wasm>, "->"),
+      node((1.6, 1.45), [Tokenliste], width: 2.6cm, height: 0.82cm, corner-radius: 7pt),
+      edge(<lexer>, (1.6, 1.1), "->"),
+      node((3.2, 1.45), [AST], width: 1.8cm, height: 0.82cm, corner-radius: 7pt),
+      edge(<parser>, (3.2, 1.1), "->"),
+    )
+  ]
+]
+
+#let feature-table() = box(width: 94%)[
+  #set text(size: 15pt)
+  #table(
+    columns: (2.35fr, 1.15fr, 1.5fr),
+    stroke: none,
+    inset: 8pt,
+    fill: (x, y) => if y == 0 { rgb("#20314a") } else if calc.odd(y) { panel } else { rgb("#132033") },
+    align: (left, center, left),
+    [*Bereich*], [*Im Projekt*], [*Bewusst weggelassen*],
+    [Datentypen], [Nur `Int`], [Keine Floats, Strings, Arrays],
+    [Kontrollfluss], [`if`, `while`, `return`], [Kein `for`, kein `match`],
+    [Funktionen + Variablen], [Eigene Funktionen, `let`], [Keine Methoden, keine Overloads, kein komplexes Typsystem],
+    [Komfort], [`print(...)`], [Keine Bibliothek, keine Collections],
+  )
 ]
 
 #let ast-diagram() = box(
@@ -175,15 +269,23 @@
 // - zweite Nachfrage zu Scratch
 #empty-slide[
   #meta[EINSTIEG]
-  #v(0.25em)
-  #text(size: 28pt, weight: "bold")[Gliederung]
-  #v(0.32em)
+  #v(0.1em)
+  #text(size: 30pt, weight: "bold")[Gliederung]
+  #v(0.22em)
+  #rect(width: 100%, height: 0.08cm, radius: 999pt, fill: rgb("#1a2940"))[
+    #grid(
+      columns: (1fr, 1fr, 1fr, 1fr),
+      gutter: 14pt,
+      inset: 0pt,
+    )[]
+  ]
+  #v(0.26em)
   #grid(
     columns: (1fr, 1fr, 1fr, 1fr),
-    gutter: 12pt,
+    gutter: 14pt,
     outline-card([01 Einstieg], ([Publikumsfrage], [Motivation], [Leitfrage])),
     outline-card([02 Grundlagen], ([Compiler], [Interpreter], [WebAssembly])),
-    outline-card([03 Selbstversuch], ([Sprache], [Pipeline], [Ausführung])),
+    outline-card([03 Selbstversuch], ([Sprache], [Lexer bis WAT], [Ausführung])),
     outline-card([04 Bewertung], ([Werkzeuge], [Ergebnis], [Fazit])),
   )
 ]
@@ -213,6 +315,26 @@
   [Sprachen fühlen sich sehr unterschiedlich an],
 ))
 
+#v(0.34em)
+#grid(
+  columns: (1fr, 1fr, 1fr),
+  gutter: 12pt,
+  scratch-card(),
+  syntax-card([PYTHON], rgb("#7cc7ff"))[
+```python
+name = input("Wie heißt du? ")
+print(name)
+```
+  ],
+  syntax-card([JAVA], rgb("#8ec07c"))[
+```java
+Scanner sc = new Scanner(System.in);
+String name = sc.nextLine();
+System.out.println(name);
+```
+  ],
+)
+
 // Ziel der Folie:
 // - Frust an Syntax / Sprache benennen
 // - direkt zur Kernfrage führen
@@ -234,6 +356,25 @@
   [Sprachen passen nicht zu jedem Problem],
   [Man wünscht sich manchmal eine eigene Lösung],
 ))
+
+#v(0.34em)
+#grid(
+  columns: (1fr, 1fr),
+  gutter: 14pt,
+  syntax-card([PYTHON], rgb("#7cc7ff"))[
+```python
+if score > 90:
+    print("sehr gut")
+```
+  ],
+  syntax-card([JAVA], rgb("#8ec07c"))[
+```java
+if (score > 90) {
+    System.out.println("sehr gut");
+}
+```
+  ],
+)
 
 // Ziel der Folie:
 // - Leitfrage sauber setzen
@@ -303,6 +444,9 @@
   [Aus Quelltext wird etwas Ausführbares],
   [Arbeitet vor der eigentlichen Ausführung],
 ))
+
+#v(0.36em)
+#compiler-flow()
 
 // Ziel der Folie:
 // - Unterschied zu Interpreter einfach und merkbar erklären
@@ -394,6 +538,9 @@
   [Funktionen, Variablen, Bedingungen, Schleifen],
 ))
 
+#v(0.34em)
+#feature-table()
+
 // Ziel der Folie:
 // - ein Beispiel setzen, das danach wieder aufgegriffen wird
 // - möglichst wenig, aber lesbarer Code
@@ -414,14 +561,17 @@
   [Von Syntax zu Tokens, AST und WebAssembly],
 ))
 
-#v(0.3em)
-#code-example(width: 72%)[
+#v(0.46em)
+#code-example(width: 66%)[
 ```rust
+// Startpunkt des Programms
 fn main() {
+    // Ausdruck ausrechnen und ausgeben
     print(7 + 5);
 }
 ```
 ]
+#v(0.22em)
 
 // Ziel der Folie:
 // - ersten Verarbeitungsschritt sehr einfach erklären
@@ -445,13 +595,15 @@ fn main() {
   [Beispiel: Name, Klammern, Zahlen, Plus],
 ))
 
-#v(0.3em)
-#code-example(width: 80%)[
+#v(0.46em)
+#code-example(width: 72%)[
 ```text
+// Noch keine Struktur, nur Einzelteile
 [Ident("print"), LParen, Int(7),
  Plus, Int(5), RParen]
 ```
 ]
+#v(0.22em)
 
 // Ziel der Folie:
 // - aus Token eine Struktur machen
@@ -499,15 +651,17 @@ fn main() {
   [Danach Ergebnis an `print` geben],
 ))
 
-#v(0.3em)
-#code-example(width: 68%)[
+#v(0.46em)
+#code-example(width: 62%)[
 ```text
+// Interne Schrittfolge für den Ausdruck
 push 7
 push 5
 add
 call print
 ```
 ]
+#v(0.22em)
 
 // Ziel der Folie:
 // - eigentlichen WebAssembly-Schritt klar machen
@@ -530,9 +684,10 @@ call print
   [Darum wird das Backend einfacher],
 ))
 
-#v(0.3em)
-#code-example(width: 72%)[
+#v(0.46em)
+#code-example(width: 66%)[
 ```wat
+;; Das Ergebnis der kleinen Pipeline
 (func (export "main")
   i64.const 7
   i64.const 5
