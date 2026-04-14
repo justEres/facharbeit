@@ -1,6 +1,5 @@
 #import "@preview/touying:0.7.1": *
 #import themes.simple: *
-#import "vendor/codly/codly.typ": *
 
 #let bg = rgb("#0b1220")
 #let panel = rgb("#162338")
@@ -20,16 +19,16 @@
 
 #set page(
   fill: bg,
-  margin: (x: 1.15cm, y: 0.8cm),
+  margin: (x: 1.0cm, y: 0.72cm),
 )
 
 #set text(
   font: "Noto Sans CJK JP",
   fill: text-main,
-  size: 18.5pt,
+  size: 20pt,
 )
 
-#set par(justify: false, leading: 0.82em)
+#set par(justify: false, leading: 0.78em)
 
 #show heading.where(level: 1): it => block(
   above: 0pt,
@@ -55,7 +54,7 @@
 ]
 
 #let meta(body) = text(size: 14pt, fill: text-muted, tracking: 0.07em, weight: "medium")[#body]
-#let lead(body) = text(size: 16pt, fill: text-muted)[#body]
+#let lead(body) = text(size: 17pt, fill: text-muted)[#body]
 
 #let bullet-list(items) = {
   let rendered = ()
@@ -64,12 +63,14 @@
       #grid(
         columns: (0.45cm, 1fr),
         gutter: 0.35cm,
-        align(center + horizon)[#text(fill: accent, size: 16pt)[•]],
-        text(size: 19pt, fill: text-main)[#item],
+        align(center + horizon)[#text(fill: accent, size: 18pt)[•]],
+        text(size: 22pt, fill: text-main)[#item],
       )
     ])
   }
-  stack(spacing: 0.5em, ..rendered)
+  box(width: 88%)[
+    #stack(spacing: 0.46em, ..rendered)
+  ]
 }
 
 #let outline-card(title, lines) = rect(
@@ -88,33 +89,19 @@
   ]
 ]
 
-#let code-example(body) = [
-  #show: codly-init.with()
+#let code-example(body, width: 78%) = block(width: width)[
   #show raw.where(block: true): set text(
     font: "Noto Sans Mono CJK JP",
-    size: 9.3pt,
+    size: 12pt,
     fill: text-main,
   )
-  #show raw.line: set text(
-    font: "Noto Sans Mono CJK JP",
-    size: 9.3pt,
-    fill: text-main,
-  )
-  #codly(
+  #box(
+    inset: (x: 14pt, y: 10pt),
     fill: panel,
-    radius: 10pt,
     stroke: 0.6pt + rgb("#24344d"),
-    inset: 8pt,
-    zebra-fill: none,
-    number-format: none,
-    languages: (
-      rust: (name: "Rust", color: rgb("#f08d49")),
-      bash: (name: "Shell", color: rgb("#8fd18a")),
-      wat: (name: "WAT", color: rgb("#c48cff")),
-      text: (name: "Text", color: accent),
-    ),
-  )
-  #box(width: 78%)[
+    radius: 10pt,
+    width: 100%,
+  )[
     #body
   ]
 ]
@@ -136,7 +123,7 @@
 #empty-slide[
   #meta[PRÄSENTATION]
   #v(0.24em)
-  #text(size: 35pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
+  #text(size: 40pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
   #v(0.34em)
   #lead[Eigene Sprache, eigener Compiler, aber möglichst ohne Vorwissen erklärt.]
   #v(0.8em)
@@ -160,7 +147,7 @@
 #empty-slide[
   #meta[EINSTIEG]
   #v(0.25em)
-  #text(size: 24pt, weight: "bold")[Gliederung]
+  #text(size: 26pt, weight: "bold")[Gliederung]
   #v(0.45em)
   #grid(
     columns: (1fr, 1fr, 1fr, 1fr),
@@ -394,12 +381,12 @@
 
 #bullet-list((
   [Kleines Beispiel als roter Faden],
-  [Wenig Syntax, leicht lesbar],
-  [Läuft gleich durch alle Schritte],
+  [Wir kompilieren es gleich im Kopf durch],
+  [Von Syntax zu Tokens, AST und WebAssembly],
 ))
 
 #v(0.3em)
-#code-example[
+#code-example(width: 72%)[
 ```rust
 fn main() {
     print(7 + 5);
@@ -424,16 +411,16 @@ fn main() {
 == Lexer
 
 #bullet-list((
-  [Text -> kleine Bausteine],
-  [Zahlen, Namen, Zeichen werden getrennt],
-  [Grundlage für alle nächsten Schritte],
+  [Aus Text wird eine Liste von Tokens],
+  [Noch keine Bedeutung, nur Bausteine],
+  [Beispiel: Name, Klammern, Zahlen, Plus],
 ))
 
 #v(0.3em)
-#code-example[
+#code-example(width: 80%)[
 ```text
-print ( 7 + 5 )
-Ident  ( Int Plus Int )
+[Ident("print"), LParen, Int(7),
+ Plus, Int(5), RParen]
 ```
 ]
 
@@ -454,18 +441,18 @@ Ident  ( Int Plus Int )
 == Parser
 
 #bullet-list((
-  [Tokens -> Programmstruktur],
-  [Was gehört zusammen?],
-  [Ergebnis: ein Baum des Programms],
+  [Aus Tokens wird Struktur],
+  [Jetzt erkennt der Compiler Zusammenhänge],
+  [Ergebnis: ein echter Baum],
 ))
 
 #v(0.3em)
-#code-example[
+#code-example(width: 80%)[
 ```text
-print
-└─ plus
-   ├─ 7
-   └─ 5
+Call(print)
+└─ Arg 1: Binary(+)
+   ├─ Int(7)
+   └─ Int(5)
 ```
 ]
 
@@ -485,10 +472,20 @@ print
 == Codegen Teil 1
 
 #bullet-list((
-  [AST -> interne Zwischenform],
-  [Macht die Übersetzung übersichtlicher],
-  [Noch nicht WebAssembly, aber schon näher dran],
+  [Baum wird in einfache Arbeitsschritte zerlegt],
+  [Zuerst 7, dann 5, dann addieren],
+  [Danach Ergebnis an `print` geben],
 ))
+
+#v(0.3em)
+#code-example(width: 68%)[
+```text
+push 7
+push 5
+add
+call print
+```
+]
 
 // Ziel der Folie:
 // - eigentlichen WebAssembly-Schritt klar machen
@@ -506,18 +503,19 @@ print
 == Codegen Teil 2
 
 #bullet-list((
-  [Interne Form -> WebAssembly],
+  [Diese Schritte werden zu WebAssembly],
   [Ein Ziel statt vieler Plattformen],
-  [Kein eigener CPU-spezifischer Code nötig],
+  [Darum wird das Backend einfacher],
 ))
 
 #v(0.3em)
-#code-example[
+#code-example(width: 72%)[
 ```wat
 (func (export "main")
   i64.const 7
   i64.const 5
   i64.add
+  call 0
 )
 ```
 ]
@@ -544,7 +542,7 @@ print
 ))
 
 #v(0.3em)
-#code-example[
+#code-example(width: 58%)[
 ```bash
 cargo run -- add.eres
 Ausgabe: 12
