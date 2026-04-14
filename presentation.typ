@@ -1,5 +1,6 @@
 #import "@preview/touying:0.7.1": *
 #import themes.simple: *
+#import "@preview/fletcher:0.5.8" as fletcher: diagram, node, edge
 
 #let bg = rgb("#0b1220")
 #let panel = rgb("#162338")
@@ -19,13 +20,13 @@
 
 #set page(
   fill: bg,
-  margin: (x: 1.0cm, y: 0.72cm),
+  margin: (x: 0.82cm, y: 0.66cm),
 )
 
 #set text(
   font: "Noto Sans CJK JP",
   fill: text-main,
-  size: 20pt,
+  size: 22pt,
 )
 
 #set par(justify: false, leading: 0.78em)
@@ -37,7 +38,7 @@
 )[
   #text(size: 14pt, fill: text-muted, tracking: 0.07em, weight: "medium")[BLOCK]
   #v(0.18em)
-  #text(size: 31pt, weight: "bold", fill: text-main)[#it.body]
+  #text(size: 33pt, weight: "bold", fill: text-main)[#it.body]
 ]
 
 #show heading.where(level: 2): it => block(
@@ -47,14 +48,14 @@
 )[
   #text(size: 14pt, fill: text-muted)[#utils.display-current-heading(level: 1)]
   #v(0.1em)
-  #text(size: 27pt, weight: "bold", fill: text-main)[#it.body]
-  #v(0.28em)
+  #text(size: 29pt, weight: "bold", fill: text-main)[#it.body]
+  #v(0.22em)
   #rect(width: 1.1cm, height: 0.08cm, radius: 999pt, fill: accent)
-  #v(0.38em)
+  #v(0.3em)
 ]
 
 #let meta(body) = text(size: 14pt, fill: text-muted, tracking: 0.07em, weight: "medium")[#body]
-#let lead(body) = text(size: 17pt, fill: text-muted)[#body]
+#let lead(body) = text(size: 19pt, fill: text-muted)[#body]
 
 #let bullet-list(items) = {
   let rendered = ()
@@ -62,14 +63,14 @@
     rendered.push([
       #grid(
         columns: (0.45cm, 1fr),
-        gutter: 0.35cm,
-        align(center + horizon)[#text(fill: accent, size: 18pt)[•]],
-        text(size: 22pt, fill: text-main)[#item],
+        gutter: 0.34cm,
+        align(center + horizon)[#text(fill: accent, size: 19pt)[•]],
+        text(size: 24.5pt, fill: text-main)[#item],
       )
     ])
   }
-  box(width: 88%)[
-    #stack(spacing: 0.46em, ..rendered)
+  box(width: 92%)[
+    #stack(spacing: 0.4em, ..rendered)
   ]
 }
 
@@ -77,32 +78,60 @@
   fill: panel,
   stroke: (paint: rgb("#253754"), thickness: 0.8pt),
   radius: 14pt,
-  inset: 12pt,
+  inset: 13pt,
   width: 100%,
-  height: 4.5cm,
+  height: 4.25cm,
 )[
-  #text(size: 12pt, fill: accent, weight: "bold")[#title]
-  #v(0.28em)
+  #text(size: 12.5pt, fill: accent, weight: "bold")[#title]
+  #v(0.26em)
   #for line in lines [
-    #text(size: 12.5pt)[#line]
+    #text(size: 13.2pt)[#line]
     #linebreak()
   ]
 ]
 
-#let code-example(body, width: 78%) = block(width: width)[
+#let code-example(body, width: 82%) = block(width: width)[
   #show raw.where(block: true): set text(
     font: "Noto Sans Mono CJK JP",
-    size: 12pt,
+    size: 13.2pt,
     fill: text-main,
   )
+  #show raw.where(block: true): set par(leading: 0.72em)
   #box(
-    inset: (x: 14pt, y: 10pt),
+    inset: (x: 16pt, y: 12pt),
     fill: panel,
     stroke: 0.6pt + rgb("#24344d"),
     radius: 10pt,
     width: 100%,
   )[
     #body
+  ]
+]
+
+#let ast-diagram() = box(
+  width: 88%,
+  height: 5.7cm,
+  inset: 10pt,
+  fill: panel,
+  stroke: 0.6pt + rgb("#24344d"),
+  radius: 10pt,
+)[
+  #align(center + horizon)[
+    #set text(fill: text-main, size: 13pt)
+    #diagram(
+      cell-size: 12mm,
+      spacing: 1.6em,
+      node-fill: rgb("#27456d"),
+      node-stroke: 1.4pt + accent,
+      edge-stroke: 1.4pt + accent,
+      node((0, 0), [#text(fill: text-main, weight: "bold")[print(...) ]], name: <call>, width: 3.2cm, height: 1.0cm, corner-radius: 8pt),
+      node((0, 1), [#text(fill: text-main)[`+`]], name: <plus>, width: 2.1cm, height: 0.95cm, corner-radius: 8pt),
+      node((-1.1, 2), [#text(fill: text-main)[`7`]], name: <left>, width: 1.6cm, height: 0.9cm, corner-radius: 8pt),
+      node((1.1, 2), [#text(fill: text-main)[`5`]], name: <right>, width: 1.6cm, height: 0.9cm, corner-radius: 8pt),
+      edge(<call>, <plus>, "->"),
+      edge(<plus>, <left>, "->"),
+      edge(<plus>, <right>, "->"),
+    )
   ]
 ]
 
@@ -123,10 +152,10 @@
 #empty-slide[
   #meta[PRÄSENTATION]
   #v(0.24em)
-  #text(size: 40pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
-  #v(0.34em)
+  #text(size: 45pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
+  #v(0.28em)
   #lead[Eigene Sprache, eigener Compiler, aber möglichst ohne Vorwissen erklärt.]
-  #v(0.8em)
+  #v(0.62em)
   #text(size: 14pt, fill: text-muted)[Erik Tschöpe]
 ]
 
@@ -147,8 +176,8 @@
 #empty-slide[
   #meta[EINSTIEG]
   #v(0.25em)
-  #text(size: 26pt, weight: "bold")[Gliederung]
-  #v(0.45em)
+  #text(size: 28pt, weight: "bold")[Gliederung]
+  #v(0.32em)
   #grid(
     columns: (1fr, 1fr, 1fr, 1fr),
     gutter: 12pt,
@@ -447,14 +476,7 @@ fn main() {
 ))
 
 #v(0.3em)
-#code-example(width: 80%)[
-```text
-Call(print)
-└─ Arg 1: Binary(+)
-   ├─ Int(7)
-   └─ Int(5)
-```
-]
+#ast-diagram()
 
 // Ziel der Folie:
 // - Zwischenschritt IR verständlich machen
