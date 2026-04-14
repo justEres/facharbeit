@@ -202,6 +202,241 @@
   )
 ]
 
+#let pill(label, tone: accent, fill-color: panel) = rect(
+  fill: fill-color,
+  stroke: 0.8pt + rgb("#29405f"),
+  radius: 999pt,
+  inset: (x: 14pt, y: 8pt),
+)[
+  #text(size: 14pt, fill: tone, weight: "bold")[#label]
+]
+
+#let compact-pill(label, tone: accent, fill-color: panel) = rect(
+  fill: fill-color,
+  stroke: 0.8pt + rgb("#29405f"),
+  radius: 999pt,
+  inset: (x: 12pt, y: 6pt),
+)[
+  #text(size: 13pt, fill: tone, weight: "bold")[#label]
+]
+
+#let flow-card(title, body, width: 100%, height: auto) = rect(
+  fill: panel,
+  stroke: 0.8pt + rgb("#253754"),
+  radius: 14pt,
+  inset: 14pt,
+  width: width,
+  height: height,
+)[
+  #text(size: 12pt, fill: accent, weight: "bold", tracking: 0.05em)[#title]
+  #v(0.26em)
+  #body
+]
+
+#let logo-badge(path, label, tone: accent) = rect(
+  fill: panel,
+  stroke: 0.8pt + rgb("#253754"),
+  radius: 14pt,
+  inset: 12pt,
+  width: 100%,
+  height: 3.4cm,
+)[
+  #align(center + horizon)[
+    #box(fill: rgb("#f3f7fb"), inset: 10pt, radius: 999pt)[
+      #image(path, height: 0.9cm)
+    ]
+    #v(0.22em)
+    #text(size: 12.5pt, fill: tone, weight: "bold")[#label]
+  ]
+]
+
+#let title-visual() = grid(
+  columns: (1fr, auto, 1fr, auto, 1fr, auto, 1fr),
+  gutter: 10pt,
+  align: center + horizon,
+  pill([Eigene Sprache], tone: rgb("#9ad0ff")),
+  text(fill: text-muted, size: 18pt)[→],
+  pill([Compiler], tone: accent),
+  text(fill: text-muted, size: 18pt)[→],
+  pill([WebAssembly], tone: rgb("#8ec07c")),
+  text(fill: text-muted, size: 18pt)[→],
+  pill([Ausführung], tone: rgb("#ffb454")),
+)
+
+#let question-visual() = box(width: 92%)[
+  #grid(
+    columns: (1fr, auto, 1fr, auto, 1fr),
+    gutter: 12pt,
+    align: center + horizon,
+    flow-card([AUSGANGSFRAGE], height: 2.8cm)[
+      #align(center + horizon)[#text(size: 18pt, weight: "bold")[Beste Sprache?]]
+    ],
+    text(fill: text-muted, size: 20pt)[→],
+    flow-card([NÄCHSTER GEDANKE], height: 2.8cm)[
+      #align(center + horizon)[#text(size: 18pt, weight: "bold")[Eigene Sprache?]]
+    ],
+    text(fill: text-muted, size: 20pt)[→],
+    flow-card([FACHARBEIT], height: 2.8cm)[
+      #align(center + horizon)[#text(size: 18pt, weight: "bold")[Mit WASM leichter?]]
+    ],
+  )
+]
+
+#let project-visual() = box(width: 92%)[
+  #grid(
+    columns: (1fr, auto, 1fr, auto, 1fr),
+    gutter: 12pt,
+    align: center + horizon,
+    flow-card([EINGABE], height: 2.65cm)[
+      #text(size: 17pt, weight: "bold")[Eigene Sprache]
+      #v(0.18em)
+      #text(size: 13pt, fill: text-muted)[klein und bewusst reduziert]
+    ],
+    text(fill: text-muted, size: 20pt)[→],
+    flow-card([UMWANDLUNG], height: 2.65cm)[
+      #text(size: 17pt, weight: "bold")[Compiler]
+      #v(0.18em)
+      #text(size: 13pt, fill: text-muted)[selbst gebaut in Rust]
+    ],
+    text(fill: text-muted, size: 20pt)[→],
+    flow-card([ERGEBNIS], height: 2.65cm)[
+      #text(size: 17pt, weight: "bold")[WebAssembly]
+      #v(0.18em)
+      #text(size: 13pt, fill: text-muted)[ausführbarer Zielcode]
+    ],
+  )
+]
+
+#let compiler-interpreter-visual() = grid(
+  columns: (1fr, 1fr),
+  gutter: 14pt,
+  flow-card([INTERPRETER], height: 4.85cm)[
+    #text(size: 15pt, fill: text-muted)[typische Beispiele]
+    #v(0.24em)
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 10pt,
+      logo-badge("assets/logos/python.svg", [Python], tone: rgb("#7cc7ff")),
+      logo-badge("assets/logos/javascript.svg", [JavaScript], tone: rgb("#f0c24b")),
+    )
+  ],
+  flow-card([COMPILER], height: 4.85cm)[
+    #text(size: 15pt, fill: text-muted)[typische Beispiele]
+    #v(0.24em)
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 10pt,
+      logo-badge("assets/logos/c.svg", [C], tone: rgb("#9ad0ff")),
+      logo-badge("assets/logos/rust.svg", [Rust], tone: rgb("#d2d8e2")),
+    )
+  ],
+)
+
+#let wasm-visual() = grid(
+  columns: (1fr, 0.9fr, 1fr),
+  gutter: 14pt,
+  flow-card([BROWSER], height: 4.25cm)[
+    #text(size: 18pt, weight: "bold")[Browser]
+    #v(0.18em)
+    #text(size: 13pt, fill: text-muted)[WebAssembly direkt im Web]
+    #v(0.5em)
+    #pill([Chrome / Firefox / Safari], tone: rgb("#9ad0ff"), fill-color: rgb("#112030"))
+  ],
+  rect(
+    fill: rgb("#243a5a"),
+    stroke: 0.8pt + accent,
+    radius: 16pt,
+    inset: 14pt,
+    width: 100%,
+    height: 4.25cm,
+  )[
+    #align(center + horizon)[
+      #text(size: 28pt, weight: "bold")[WASM]
+      #v(0.14em)
+      #text(size: 13pt, fill: text-muted)[ein gemeinsames Zielformat]
+    ]
+  ],
+  flow-card([LAUFZEIT], height: 4.25cm)[
+    #text(size: 18pt, weight: "bold")[Wasmtime]
+    #v(0.18em)
+    #text(size: 13pt, fill: text-muted)[auch außerhalb des Browsers]
+    #v(0.5em)
+    #pill([CLI / Tools / lokal], tone: rgb("#ffb454"), fill-color: rgb("#112030"))
+  ],
+)
+
+#let project-sentence-visual() = box(width: 92%)[
+  #grid(
+    columns: (1fr, auto, 1fr, auto, 1fr, auto, 1.2fr),
+    gutter: 10pt,
+    align: center + horizon,
+    pill([Eigener Code], tone: rgb("#9ad0ff")),
+    text(fill: text-muted, size: 18pt)[→],
+    pill([Compiler], tone: accent),
+    text(fill: text-muted, size: 18pt)[→],
+    pill([WASM], tone: rgb("#8ec07c")),
+    text(fill: text-muted, size: 18pt)[→],
+    pill([Wasmtime / Browser], tone: rgb("#ffb454")),
+  )
+]
+
+#let tools-visual() = grid(
+  columns: (1.2fr, 1fr),
+  gutter: 14pt,
+  flow-card([IMPLEMENTIERUNG], height: 4.55cm)[
+    #align(center + horizon)[
+      #box(fill: rgb("#f3f7fb"), inset: 12pt, radius: 999pt)[
+        #image("assets/logos/rust.svg", height: 1.05cm)
+      ]
+      #v(0.22em)
+      #text(size: 17pt, weight: "bold")[Rust]
+      #v(0.12em)
+      #text(size: 13pt, fill: text-muted)[kompiliert, performant, gutes WASM-Ökosystem]
+    ]
+  ],
+  flow-card([WEITERE TOOLS], height: 4.55cm)[
+    #grid(
+      columns: (1fr, 1fr),
+      gutter: 10pt,
+      pill([wasm-encoder], tone: rgb("#9ad0ff"), fill-color: rgb("#112030")),
+      pill([wasmtime], tone: rgb("#ffb454"), fill-color: rgb("#112030")),
+      pill([git], tone: rgb("#8ec07c"), fill-color: rgb("#112030")),
+      pill([typst], tone: rgb("#d9b3ff"), fill-color: rgb("#112030")),
+    )
+  ],
+)
+
+#let evaluation-visual() = grid(
+  columns: (1fr, 1fr),
+  gutter: 14pt,
+  flow-card([WIRD LEICHTER], height: 4.95cm)[
+    #stack(
+      spacing: 8pt,
+      compact-pill([ein gemeinsames Ziel], tone: rgb("#8ec07c"), fill-color: rgb("#112030")),
+      compact-pill([weniger Plattformdetails], tone: rgb("#8ec07c"), fill-color: rgb("#112030")),
+      compact-pill([Backend überschaubarer], tone: rgb("#8ec07c"), fill-color: rgb("#112030")),
+    )
+  ],
+  flow-card([BLEIBT SCHWIERIG], height: 4.95cm)[
+    #stack(
+      spacing: 8pt,
+      compact-pill([Lexer und Parser], tone: rgb("#ffb454"), fill-color: rgb("#112030")),
+      compact-pill([Fehlerbehandlung], tone: rgb("#ffb454"), fill-color: rgb("#112030")),
+      compact-pill([Sprachdesign und Logik], tone: rgb("#ffb454"), fill-color: rgb("#112030")),
+    )
+  ],
+)
+
+#let final-visual() = flow-card([MITNEHMEN], width: 82%, height: 3.8cm)[
+  #align(center + horizon)[
+    #text(size: 18pt, weight: "bold")[Eigene Sprache bauen]
+    #v(0.2em)
+    #text(size: 28pt, fill: accent)[Ja.]
+    #v(0.24em)
+    #text(size: 14pt, fill: text-muted)[Mit WebAssembly realistischer, aber nicht plötzlich einfach.]
+  ]
+]
+
 #let ast-diagram() = box(
   width: 88%,
   height: 5.7cm,
@@ -249,7 +484,9 @@
   #text(size: 45pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
   #v(0.28em)
   #lead[Eigene Sprache, eigener Compiler, aber möglichst ohne Vorwissen erklärt.]
-  #v(0.62em)
+  #v(0.74em)
+  #title-visual()
+  #v(0.56em)
   #text(size: 14pt, fill: text-muted)[Erik Tschöpe]
 ]
 
@@ -399,6 +636,9 @@ if (score > 90) {
   [Frage: macht WebAssembly den Bau realistischer?],
 ))
 
+#v(0.34em)
+#question-visual()
+
 = Grundlagen <touying:hidden>
 
 // Ziel der Folie:
@@ -422,6 +662,9 @@ if (score > 90) {
   [Bewusst reduzierter Funktionsumfang],
   [Compiler erzeugt WebAssembly],
 ))
+
+#v(0.38em)
+#project-visual()
 
 // Ziel der Folie:
 // - Compilerbegriff einfach machen
@@ -470,6 +713,9 @@ if (score > 90) {
   [Beispiele: Python/JS vs. C/Rust],
 ))
 
+#v(0.38em)
+#compiler-interpreter-visual()
+
 // Ziel der Folie:
 // - WebAssembly einführen ohne Fachjargon
 // - Rolle als Zielplattform betonen
@@ -491,6 +737,9 @@ if (score > 90) {
   [Läuft im Browser und auch außerhalb],
   [Praktisch als gemeinsames Ziel für Compiler],
 ))
+
+#v(0.38em)
+#wasm-visual()
 
 // Ziel der Folie:
 // - Gesamtidee des Projekts auf einen Satz verdichten
@@ -514,6 +763,9 @@ if (score > 90) {
   [WebAssembly],
   [Ausführung],
 ))
+
+#v(0.5em)
+#project-sentence-visual()
 
 = Selbstversuch <touying:hidden>
 
@@ -750,6 +1002,9 @@ Ausgabe: 12
   [Starkes WebAssembly-Ökosystem],
 ))
 
+#v(0.38em)
+#tools-visual()
+
 // Ziel der Folie:
 // - Leitfrage differenziert beantworten
 // - weder übertreiben noch kleinreden
@@ -771,6 +1026,9 @@ Ausgabe: 12
   [Frontend und Sprachlogik bleiben schwierig],
   [Also: realistischer, aber nicht trivial],
 ))
+
+#v(0.38em)
+#evaluation-visual()
 
 // Ziel der Folie:
 // - sauber abschließen
@@ -794,3 +1052,6 @@ Ausgabe: 12
   [Aber weiterhin technisch anspruchsvoll],
   [Fragen?],
 ))
+
+#v(0.42em)
+#final-visual()
