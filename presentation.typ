@@ -35,7 +35,7 @@
   size: 22pt,
 )
 
-#set par(justify: false, leading: 0.78em)
+#set par(justify: false, leading: 1.0em)
 
 #show heading.where(level: 1): it => block(
   above: 0pt,
@@ -76,11 +76,11 @@
     ])
   }
   box(width: 90%)[
-    #stack(spacing: 0.36em, ..rendered)
+    #stack(spacing: 0.56em, ..rendered)
   ]
 }
 
-#let outline-card(title, lines, height: 4.15cm) = rect(
+#let outline-card(title, lines, height: 4.8cm) = rect(
   fill: panel,
   stroke: (paint: rgb("#253754"), thickness: 0.8pt),
   radius: 14pt,
@@ -162,7 +162,7 @@
 
 #let compiler-flow() = box(
   width: 92%,
-  height: 5.4cm,
+  height: 6.4cm,
   inset: 10pt,
   fill: panel,
   stroke: 0.6pt + rgb("#24344d"),
@@ -212,7 +212,7 @@
   fill: fill-color,
   stroke: 0.8pt + rgb("#29405f"),
   radius: 999pt,
-  inset: (x: 13pt, y: 7pt),
+  inset: (x: 15pt, y: 12pt),
 )[
   #text(size: 14pt, fill: tone, weight: "bold")[#label]
 ]
@@ -293,19 +293,19 @@
     columns: (1fr, auto, 1fr, auto, 1fr),
     gutter: 12pt,
     align: center + horizon,
-    flow-card([EINGABE], height: 2.65cm)[
+    flow-card([EINGABE], height: 3.85cm)[
       #text(size: 17pt, weight: "bold")[Eigene Sprache]
       #v(0.18em)
       #text(size: 13pt, fill: text-muted)[klein und bewusst reduziert]
     ],
     text(fill: text-muted, size: 20pt)[→],
-    flow-card([UMWANDLUNG], height: 2.65cm)[
+    flow-card([UMWANDLUNG], height: 3.85cm)[
       #text(size: 17pt, weight: "bold")[Compiler]
       #v(0.18em)
       #text(size: 13pt, fill: text-muted)[selbst gebaut in Rust]
     ],
     text(fill: text-muted, size: 20pt)[→],
-    flow-card([ERGEBNIS], height: 2.65cm)[
+    flow-card([ERGEBNIS], height: 3.85cm)[
       #text(size: 17pt, weight: "bold")[WebAssembly]
       #v(0.18em)
       #text(size: 13pt, fill: text-muted)[ausführbarer Zielcode]
@@ -316,7 +316,7 @@
 #let compiler-interpreter-visual() = grid(
   columns: (1fr, 1fr),
   gutter: 12pt,
-  flow-card([INTERPRETER], height: 4.6cm)[
+  flow-card([INTERPRETER], height: 6.6cm)[
     #text(size: 15pt, fill: text-muted)[typische Beispiele]
     #v(0.18em)
     #grid(
@@ -326,7 +326,7 @@
       logo-badge("assets/logos/javascript.svg", [JavaScript], tone: rgb("#f0c24b")),
     )
   ],
-  flow-card([COMPILER], height: 4.6cm)[
+  flow-card([COMPILER], height: 6.6cm)[
     #text(size: 15pt, fill: text-muted)[typische Beispiele]
     #v(0.18em)
     #grid(
@@ -389,7 +389,7 @@
 #let tools-visual() = grid(
   columns: (1.2fr, 1fr),
   gutter: 12pt,
-  flow-card([IMPLEMENTIERUNG], height: 4.25cm)[
+  flow-card([IMPLEMENTIERUNG], height: 7.25cm)[
     #align(center + horizon)[
       #box(fill: rgb("#f3f7fb"), inset: 12pt, radius: 999pt)[
         #image("assets/logos/rust.svg", height: 1.05cm)
@@ -400,7 +400,7 @@
       #text(size: 13pt, fill: text-muted)[kompiliert, performant, gutes WASM-Ökosystem]
     ]
   ],
-  flow-card([WEITERE TOOLS], height: 4.25cm)[
+  flow-card([WEITERE TOOLS], height: 7.25cm)[
     #grid(
       columns: (1fr, 1fr),
       gutter: 9pt,
@@ -445,7 +445,7 @@
 
 #let ast-diagram() = box(
   width: 88%,
-  height: 5.7cm,
+  height: 7.7cm,
   inset: 10pt,
   fill: panel,
   stroke: 0.6pt + rgb("#24344d"),
@@ -489,7 +489,7 @@
   #v(0.24em)
   #text(size: 45pt, weight: "bold")[WebAssembly als Abkürzung zum eigenen Compiler?]
   #v(0.28em)
-  #lead[Eigene Sprache, eigener Compiler, aber möglichst ohne Vorwissen erklärt.]
+  #lead[Eigene Sprache, eigener Compiler, aber wie?]
   #v(0.74em)
   #title-visual()
   #v(0.56em)
