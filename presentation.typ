@@ -8,6 +8,12 @@
 #let text-muted = rgb("#9fb1c9")
 #let accent = rgb("#6ea8ff")
 
+// Layout-Tuning:
+// - Boxbreite: width: ...
+// - Boxhöhe: height: ...
+// - Innenabstand: inset: ...
+// - Abstand zwischen Boxen: gutter: ... / spacing: ...
+
 #show: simple-theme.with(
   aspect-ratio: "16-9",
   config-info(
@@ -69,21 +75,21 @@
       )
     ])
   }
-  box(width: 92%)[
-    #stack(spacing: 0.4em, ..rendered)
+  box(width: 90%)[
+    #stack(spacing: 0.36em, ..rendered)
   ]
 }
 
-#let outline-card(title, lines) = rect(
+#let outline-card(title, lines, height: 4.15cm) = rect(
   fill: panel,
   stroke: (paint: rgb("#253754"), thickness: 0.8pt),
   radius: 14pt,
-  inset: 13pt,
+  inset: 12pt,
   width: 100%,
-  height: 4.25cm,
+  height: height,
 )[
   #text(size: 12.5pt, fill: accent, weight: "bold")[#title]
-  #v(0.26em)
+  #v(0.22em)
   #for line in lines [
     #text(size: 13.2pt)[#line]
     #linebreak()
@@ -98,7 +104,7 @@
   )
   #show raw.where(block: true): set par(leading: 0.72em)
   #box(
-    inset: (x: 14pt, y: 16pt),
+    inset: (x: 14pt, y: 15pt),
     fill: panel,
     stroke: 0.6pt + rgb("#24344d"),
     radius: 10pt,
@@ -108,19 +114,19 @@
   ]
 ]
 
-#let syntax-card(title, tone, body) = rect(
+#let syntax-card(title, tone, body, height: 4.8cm) = rect(
   fill: panel,
   stroke: 0.8pt + rgb("#253754"),
   radius: 14pt,
-  inset: 14pt,
+  inset: 13pt,
   width: 100%,
-  height: 4.65cm,
+  height: height,
 )[
   #text(size: 12pt, fill: tone, weight: "bold", tracking: 0.05em)[#title]
-  #v(0.3em)
+  #v(0.22em)
   #show raw.where(block: true): set text(
     font: "Noto Sans Mono CJK JP",
-    size: 11.2pt,
+    size: 10.9pt,
     fill: text-main,
   )
   #show raw.where(block: true): set par(leading: 0.7em)
@@ -136,18 +142,18 @@
   #text(size: 11pt, fill: rgb("#08101b"), weight: "bold")[#label]
 ]
 
-#let scratch-card() = rect(
+#let scratch-card(height: 4.8cm) = rect(
   fill: panel,
   stroke: 0.8pt + rgb("#253754"),
   radius: 14pt,
-  inset: 14pt,
+  inset: 13pt,
   width: 100%,
-  height: 4.65cm,
+  height: height,
 )[
   #text(size: 12pt, fill: rgb("#ffb454"), weight: "bold", tracking: 0.05em)[SCRATCH]
-  #v(0.35em)
+  #v(0.24em)
   #stack(
-    spacing: 8pt,
+    spacing: 7pt,
     scratch-chip(rgb("#ffab19"), [wenn grüne Flagge angeklickt]),
     scratch-chip(rgb("#4c97ff"), [frage "Wie heißt du?" und warte]),
     scratch-chip(rgb("#59c059"), [sage (Antwort) für 2 Sekunden]),
@@ -206,7 +212,7 @@
   fill: fill-color,
   stroke: 0.8pt + rgb("#29405f"),
   radius: 999pt,
-  inset: (x: 14pt, y: 8pt),
+  inset: (x: 13pt, y: 7pt),
 )[
   #text(size: 14pt, fill: tone, weight: "bold")[#label]
 ]
@@ -220,16 +226,16 @@
   #text(size: 13pt, fill: tone, weight: "bold")[#label]
 ]
 
-#let flow-card(title, body, width: 100%, height: auto) = rect(
+#let flow-card(title, body, width: 100%, height: auto, inset: 12pt) = rect(
   fill: panel,
   stroke: 0.8pt + rgb("#253754"),
   radius: 14pt,
-  inset: 14pt,
+  inset: inset,
   width: width,
   height: height,
 )[
-  #text(size: 12pt, fill: accent, weight: "bold", tracking: 0.05em)[#title]
-  #v(0.26em)
+  #text(size: 11.5pt, fill: accent, weight: "bold", tracking: 0.05em)[#title]
+  #v(0.2em)
   #body
 ]
 
@@ -237,15 +243,15 @@
   fill: panel,
   stroke: 0.8pt + rgb("#253754"),
   radius: 14pt,
-  inset: 12pt,
+  inset: 10pt,
   width: 100%,
-  height: 3.4cm,
+  height: 3.15cm,
 )[
   #align(center + horizon)[
-    #box(fill: rgb("#f3f7fb"), inset: 10pt, radius: 999pt)[
-      #image(path, height: 0.9cm)
+    #box(fill: rgb("#f3f7fb"), inset: 9pt, radius: 999pt)[
+      #image(path, height: 0.82cm)
     ]
-    #v(0.22em)
+    #v(0.16em)
     #text(size: 12.5pt, fill: tone, weight: "bold")[#label]
   ]
 ]
@@ -309,23 +315,23 @@
 
 #let compiler-interpreter-visual() = grid(
   columns: (1fr, 1fr),
-  gutter: 14pt,
-  flow-card([INTERPRETER], height: 4.85cm)[
+  gutter: 12pt,
+  flow-card([INTERPRETER], height: 4.6cm)[
     #text(size: 15pt, fill: text-muted)[typische Beispiele]
-    #v(0.24em)
+    #v(0.18em)
     #grid(
       columns: (1fr, 1fr),
-      gutter: 10pt,
+      gutter: 9pt,
       logo-badge("assets/logos/python.svg", [Python], tone: rgb("#7cc7ff")),
       logo-badge("assets/logos/javascript.svg", [JavaScript], tone: rgb("#f0c24b")),
     )
   ],
-  flow-card([COMPILER], height: 4.85cm)[
+  flow-card([COMPILER], height: 4.6cm)[
     #text(size: 15pt, fill: text-muted)[typische Beispiele]
-    #v(0.24em)
+    #v(0.18em)
     #grid(
       columns: (1fr, 1fr),
-      gutter: 10pt,
+      gutter: 9pt,
       logo-badge("assets/logos/c.svg", [C], tone: rgb("#9ad0ff")),
       logo-badge("assets/logos/rust.svg", [Rust], tone: rgb("#d2d8e2")),
     )
@@ -382,8 +388,8 @@
 
 #let tools-visual() = grid(
   columns: (1.2fr, 1fr),
-  gutter: 14pt,
-  flow-card([IMPLEMENTIERUNG], height: 4.55cm)[
+  gutter: 12pt,
+  flow-card([IMPLEMENTIERUNG], height: 4.25cm)[
     #align(center + horizon)[
       #box(fill: rgb("#f3f7fb"), inset: 12pt, radius: 999pt)[
         #image("assets/logos/rust.svg", height: 1.05cm)
@@ -394,10 +400,10 @@
       #text(size: 13pt, fill: text-muted)[kompiliert, performant, gutes WASM-Ökosystem]
     ]
   ],
-  flow-card([WEITERE TOOLS], height: 4.55cm)[
+  flow-card([WEITERE TOOLS], height: 4.25cm)[
     #grid(
       columns: (1fr, 1fr),
-      gutter: 10pt,
+      gutter: 9pt,
       pill([wasm-encoder], tone: rgb("#9ad0ff"), fill-color: rgb("#112030")),
       pill([wasmtime], tone: rgb("#ffb454"), fill-color: rgb("#112030")),
       pill([git], tone: rgb("#8ec07c"), fill-color: rgb("#112030")),
