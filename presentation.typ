@@ -6,8 +6,8 @@
 #let panel = rgb("#102116")
 #let panel-soft = rgb("#162b1c")
 #let panel-deep = rgb("#0c1a11")
-#let text-main = rgb("#f2edc2")
-#let text-muted = rgb("#b9cfa6")
+#let text-main = rgb("#fbf4cc")
+#let text-muted = rgb("#c5d6b3")
 #let accent = rgb("#79ae6f")
 #let accent-strong = rgb("#9fcb98")
 #let warning = rgb("#d9b86f")
@@ -79,7 +79,8 @@
   ]
 }
 
-#let card(title, body, width: 100%, height: auto, tone: accent, fill-color: panel, inset: 12pt) = rect(
+// title-gap steuert den Abstand zwischen Box-Label und Inhalt.
+#let card(title, body, width: 100%, height: auto, tone: accent, fill-color: panel, inset: 12pt, title-gap: 0em) = rect(
   fill: fill-color,
   stroke: 0.85pt + rgb("#25482f"),
   radius: 16pt,
@@ -88,11 +89,11 @@
   height: height,
 )[
   #text(size: 12pt, fill: tone, weight: "bold", tracking: 0.06em)[#title]
-  #v(0.22em)
+  #v(title-gap)
   #body
 ]
 
-#let outline-card(title, lines, height: 4.65cm) = card(title, height: height)[
+#let outline-card(title, lines, height: 4.95cm) = card(title, height: height)[
   #for line in lines [
     #text(size: 13.2pt)[#line]
     #linebreak()
@@ -123,19 +124,25 @@
   )
 ]
 
-#let triad(a, b, c) = grid(
-  columns: (1fr, 1fr, 1fr),
-  gutter: 13pt,
-  card(a.at(0), height: 3.6cm, tone: a.at(2))[
-    #text(size: 17pt, weight: "bold")[#a.at(1)]
-  ],
-  card(b.at(0), height: 3.6cm, tone: b.at(2))[
-    #text(size: 17pt, weight: "bold")[#b.at(1)]
-  ],
-  card(c.at(0), height: 3.6cm, tone: c.at(2))[
-    #text(size: 17pt, weight: "bold")[#c.at(1)]
-  ],
-)
+// triad(..., title-gap: 0.2em) setzt den Abstand global.
+// Optional kann jedes Item als ([LABEL], [Text], farbe, 0.1em) einen eigenen Abstand setzen.
+#let triad(a, b, c, title-gap: 0em) = {
+  let gap(item) = if item.len() > 3 { item.at(3) } else { title-gap }
+
+  grid(
+    columns: (1fr, 1fr, 1fr),
+    gutter: 13pt,
+    card(a.at(0), height: 3.6cm, tone: a.at(2), title-gap: gap(a))[
+      #text(size: 17pt, weight: "bold")[#a.at(1)]
+    ],
+    card(b.at(0), height: 3.6cm, tone: b.at(2), title-gap: gap(b))[
+      #text(size: 17pt, weight: "bold")[#b.at(1)]
+    ],
+    card(c.at(0), height: 3.6cm, tone: c.at(2), title-gap: gap(c))[
+      #text(size: 17pt, weight: "bold")[#c.at(1)]
+    ],
+  )
+}
 
 #let process-diagram() = box(
   width: 90%,
@@ -154,11 +161,11 @@
       node-stroke: 1.35pt + accent,
       edge-stroke: 1.35pt + accent,
       node((0, 0), [THC], name: <thc>, width: 1.9cm, height: 0.9cm, corner-radius: 8pt),
-      node((1.7, 0), [CB1-Rezeptor], name: <cb1>, width: 3.0cm, height: 0.9cm, corner-radius: 8pt),
-      node((3.8, 0), [Signal wird gebremst], name: <signal>, width: 3.7cm, height: 0.9cm, corner-radius: 8pt),
-      node((2.0, 1.55), [Gedächtnis], name: <mem>, width: 2.5cm, height: 0.85cm, corner-radius: 8pt),
-      node((3.7, 1.55), [Aufmerksamkeit], name: <focus>, width: 3.1cm, height: 0.85cm, corner-radius: 8pt),
-      node((5.7, 1.55), [Koordination], name: <motor>, width: 2.9cm, height: 0.85cm, corner-radius: 8pt),
+      node((1.7, 0), [CB1-Rezeptor], name: <cb1>, width: 3.0cm, height: 1.9cm, corner-radius: 8pt),
+      node((3.8, 0), [Signal wird gebremst], name: <signal>, width: 3.4cm, height: 1.7cm, corner-radius: 8pt),
+      node((2.0, 1.55), [Gedächtnis], name: <mem>, width: 2.7cm, height: 0.85cm, corner-radius: 8pt),
+      node((3.7, 1.55), [Aufmerksamkeit], name: <focus>, width: 4.1cm, height: 0.85cm, corner-radius: 8pt),
+      node((5.7, 1.55), [Koordination], name: <motor>, width: 3.2cm, height: 0.85cm, corner-radius: 8pt),
       edge(<thc>, <cb1>, "->"),
       edge(<cb1>, <signal>, "->"),
       edge(<signal>, <mem>, "->"),
@@ -172,12 +179,12 @@
   #grid(
     columns: (1fr, 1fr),
     gutter: 14pt,
-    card([PRÄFRONTALER CORTEX], height: 4.65cm, tone: accent-strong)[
+    card([PRÄFRONTALER CORTEX], height: 4.85cm, tone: accent-strong)[
       #text(size: 17pt, weight: "bold")[Entscheiden, planen, Impulse kontrollieren]
       #v(0.25em)
       #text(size: 13pt, fill: text-muted)[Reift bis in die Mitte der zwanziger Jahre.]
     ],
-    card([HIPPOCAMPUS], height: 4.65cm, tone: warning)[
+    card([HIPPOCAMPUS], height: 4.85cm, tone: warning)[
       #text(size: 17pt, weight: "bold")[Lernen und Gedächtnis]
       #v(0.25em)
       #text(size: 13pt, fill: text-muted)[Viele CB1-Rezeptoren, deshalb besonders relevant.]
@@ -193,7 +200,8 @@
     inset: 8pt,
     fill: (x, y) => if y == 0 { rgb("#203b25") } else if calc.odd(y) { panel } else { panel-soft },
     align: left,
-    [*Studienlage*], [*Erfahrungsberichte*],
+    text(fill: accent-strong, weight: "bold")[Studienlage],
+    text(fill: accent-strong, weight: "bold")[Erfahrungsberichte],
     [erhöhte Risiken], [keine schweren Folgen berichtet],
     [große Stichproben], [nur drei Personen],
     [statistische Zusammenhänge], [individuelle Erfahrung],
@@ -205,15 +213,15 @@
     columns: (1fr, auto, 1fr, auto, 1fr),
     gutter: 12pt,
     align: center + horizon,
-    card([GRUNDLAGEN], height: 3.75cm, tone: accent-strong)[
+    card([GRUNDLAGEN], height: 4.75cm, tone: accent-strong)[
       #text(size: 16.2pt, weight: "bold")[Wie wirkt Cannabis im Körper?]
     ],
     text(fill: text-muted, size: 20pt)[+],
-    card([STUDIEN], height: 3.75cm, tone: warning)[
+    card([STUDIEN], height: 4.75cm, tone: warning)[
       #text(size: 16.2pt, weight: "bold")[Welche Risiken zeigen größere Untersuchungen?]
     ],
     text(fill: text-muted, size: 20pt)[+],
-    card([BERICHTE], height: 3.75cm, tone: accent)[
+    card([BERICHTE], height: 4.75cm, tone: accent)[
       #text(size: 16.2pt, weight: "bold")[Wie erleben einzelne Personen ihren Konsum?]
     ],
   )
@@ -236,6 +244,7 @@
 ]
 
 #let quote-card(body, source: []) = card([ERFAHRUNGSBERICHT], width: 84%, height: 3.8cm, tone: warning)[
+  #v(0.9em)
   #align(center + horizon)[
     #text(font: "Times New Roman", size: 24pt, fill: text-main)[„#body“]
     #v(0.24em)
@@ -501,13 +510,14 @@
 // - soziale Wirkung kann indirekt sein: weniger Teilnahme, weniger Aktivität, Konflikte
 == Psyche und Alltag
 
+
 #bullet-list((
   [Angst und Panik möglich],
   [Mischkonsum verstärkt Unsicherheit],
   [Schule und Alltag können direkt betroffen sein],
 ))
 
-#v(0.38em)
+#v(1.38em)
 #title-flow(([Rausch], [Konzentration sinkt], [Mitarbeit sinkt], [Konflikte]))
 
 // Ziel der Folie:
