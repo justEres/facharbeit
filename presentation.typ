@@ -339,7 +339,7 @@
     gutter: 14pt,
     outline-card([01 Einstieg], ([Legalisierung], [Problem], [Leitfrage])),
     outline-card([02 Grundlagen], ([Cannabis], [THC / CBD], [Gehirn])),
-    outline-card([03 Folgen], ([kurzfristig], [langfristig], [Sucht])),
+    outline-card([03 Folgen], ([Kurzfristig], [Langfristig], [Sucht])),
     outline-card([04 Einordnung], ([Erfahrungen], [Grenzen], [Fazit])),
   )
 ]
@@ -367,7 +367,7 @@
 ))
 
 #v(0.38em)
-#title-flow(([CanG 2024], [mehr Sichtbarkeit], [Jugendliche], [Risiken]))
+#title-flow(([CanG 2024], [Mehr Sichtbarkeit], [Jugendliche], [Risiken]))
 
 // Ziel der Folie:
 // - Leitfrage der Facharbeit setzen
@@ -378,7 +378,7 @@
 // - drei Ebenen: Körper/Gehirn, Psyche, soziales Leben
 // - Erfahrungsberichte ergänzen Studienlage
 // - Ziel: differenzierte Antwort statt Schwarz-Weiß
-== Die Leitfrage
+== Die Fragen
 
 #bullet-list((
   [Was passiert im Gehirn?],
@@ -431,7 +431,7 @@
 #header-icon("cannabis", size: 1.6cm)
 
 #bullet-list((
-  [Cannabis sativa als Hanfpflanze],
+  [#text(font: "Times New Roman", style: "italic")[Cannabis sativa] als Hanfpflanze],
   [Viele Cannabinoide und Terpene],
   [Im Fokus: THC und CBD],
 ))
