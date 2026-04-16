@@ -80,7 +80,8 @@
 }
 
 // title-gap steuert den Abstand zwischen Box-Label und Inhalt.
-#let card(title, body, width: 100%, height: auto, tone: accent, fill-color: panel, inset: 12pt, title-gap: 0em) = rect(
+// content-align richtet nur den Box-Inhalt aus, nicht das Label.
+#let card(title, body, width: 100%, height: auto, tone: accent, fill-color: panel, inset: 12pt, title-gap: -0.3em, content-align: left) = rect(
   fill: fill-color,
   stroke: 0.85pt + rgb("#25482f"),
   radius: 16pt,
@@ -90,7 +91,7 @@
 )[
   #text(size: 12pt, fill: tone, weight: "bold", tracking: 0.06em)[#title]
   #v(title-gap)
-  #body
+  #align(content-align)[#body]
 ]
 
 #let outline-card(title, lines, height: 4.95cm) = card(title, height: height)[
@@ -126,19 +127,19 @@
 
 // triad(..., title-gap: 0.2em) setzt den Abstand global.
 // Optional kann jedes Item als ([LABEL], [Text], farbe, 0.1em) einen eigenen Abstand setzen.
-#let triad(a, b, c, title-gap: 0em) = {
+#let triad(a, b, c, title-gap: 0em, content-align: center) = {
   let gap(item) = if item.len() > 3 { item.at(3) } else { title-gap }
 
   grid(
     columns: (1fr, 1fr, 1fr),
     gutter: 13pt,
-    card(a.at(0), height: 3.6cm, tone: a.at(2), title-gap: gap(a))[
+    card(a.at(0), height: 3.6cm, tone: a.at(2), title-gap: gap(a), content-align: content-align)[
       #text(size: 17pt, weight: "bold")[#a.at(1)]
     ],
-    card(b.at(0), height: 3.6cm, tone: b.at(2), title-gap: gap(b))[
+    card(b.at(0), height: 3.6cm, tone: b.at(2), title-gap: gap(b), content-align: content-align)[
       #text(size: 17pt, weight: "bold")[#b.at(1)]
     ],
-    card(c.at(0), height: 3.6cm, tone: c.at(2), title-gap: gap(c))[
+    card(c.at(0), height: 3.6cm, tone: c.at(2), title-gap: gap(c), content-align: content-align)[
       #text(size: 17pt, weight: "bold")[#c.at(1)]
     ],
   )
@@ -244,7 +245,7 @@
 ]
 
 #let quote-card(body, source: []) = card([ERFAHRUNGSBERICHT], width: 84%, height: 3.8cm, tone: warning)[
-  #v(0.9em)
+  #v(1.2em)
   #align(center + horizon)[
     #text(font: "Times New Roman", size: 24pt, fill: text-main)[„#body“]
     #v(0.24em)
@@ -588,9 +589,9 @@
 #grid(
   columns: (1fr, 1fr, 1fr),
   gutter: 14pt,
-  card([PERSON 1], height: 3.4cm, tone: accent-strong)[#text(size: 18pt, weight: "bold")[21 Jahre]],
-  card([PERSON 2], height: 3.4cm, tone: warning)[#text(size: 18pt, weight: "bold")[20 Jahre]],
-  card([PERSON 3], height: 3.4cm, tone: accent)[#text(size: 18pt, weight: "bold")[18 Jahre]],
+  card([PERSON 1], height: 3cm, tone: accent-strong, content-align: center)[#text(size: 18pt, weight: "bold")[21 Jahre]],
+  card([PERSON 2], height: 3cm, tone: warning, content-align: center)[#text(size: 18pt, weight: "bold")[20 Jahre]],
+  card([PERSON 3], height: 3cm, tone: accent, content-align: center)[#text(size: 18pt, weight: "bold")[18 Jahre]],
 )
 
 // Ziel der Folie:
@@ -707,7 +708,7 @@
 ))
 
 #v(0.42em)
-#card([MITNEHMEN], width: 88%, height: 3.8cm, tone: accent-strong)[
+#card([MITNEHMEN], width: 88%, height: 3.8cm, tone: accent-strong, title-gap: -1.8em)[
   #align(center + horizon)[
     #text(font: "Times New Roman", size: 27pt, fill: accent-strong, weight: "bold")[Risiko steigt, auch wenn Folgen nicht garantiert sind.]
   ]
