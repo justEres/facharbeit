@@ -219,9 +219,9 @@
     align: left,
     text(fill: accent-strong, weight: "bold")[Studienlage],
     text(fill: accent-strong, weight: "bold")[Erfahrungsberichte],
-    [erhöhte Risiken], [keine schweren Folgen berichtet],
-    [große Stichproben], [nur drei Personen],
-    [statistische Zusammenhänge], [individuelle Erfahrung],
+    [Erhöhte Risiken], [Keine schweren Folgen berichtet],
+    [Große Stichproben], [Nur drei Personen],
+    [Statistische Zusammenhänge], [Individuelle Erfahrung],
   )
 ]
 
@@ -268,13 +268,13 @@
     columns: (1fr, 1fr, 1fr),
     gutter: 13pt,
     card([STUDIEN], height: 3.6cm, tone: accent-strong)[
-      #text(size: 17pt, weight: "bold")[zeigen Muster in Gruppen]
+      #text(size: 17pt, weight: "bold")[Zeigen Muster in Gruppen]
     ],
     card([ERFAHRUNG], height: 3.6cm, tone: warning)[
-      #text(size: 17pt, weight: "bold")[zeigt einen einzelnen Verlauf]
+      #text(size: 17pt, weight: "bold")[Zeigt einen einzelnen Verlauf]
     ],
     card([FAZIT], height: 3.6cm, tone: risk)[
-      #text(size: 17pt, weight: "bold")[muss beides sauber trennen]
+      #text(size: 17pt, weight: "bold")[Muss beides sauber trennen]
     ],
   )
 ]
@@ -431,7 +431,7 @@
 #header-icon("cannabis", size: 1.6cm)
 
 #bullet-list((
-  [#text(font: "Libertinus Serif", style: "italic")[Cannabis sativa] als Hanfpflanze],
+  [#text(font: "Libertinus Serif", style: "italic", size: 29pt)[Cannabis sativa ] als Hanfpflanze],
   [Viele Cannabinoide und Terpene],
   [Im Fokus: THC und CBD],
 ))
@@ -511,8 +511,8 @@
 
 #v(0.38em)
 #triad(
-  ([KOGNITIV], [langsamer denken], accent-strong),
-  ([MOTORISCH], [unsicherer handeln], warning),
+  ([KOGNITIV], [Langsamer denken], accent-strong),
+  ([MOTORISCH], [Unsicherer handeln], warning),
   ([PSYCHISCH], [Angst möglich], risk),
 )
 
@@ -611,7 +611,7 @@
 ))
 
 #v(0.38em)
-#title-flow(([regelmäßig], [CB1 sinkt], [mehr nötig], [Entzug möglich]))
+#title-flow(([Regelmäßig], [CB1 sinkt], [Mehr nötig], [Entzug möglich]))
 
 = Erfahrungsberichte <touying:hidden>
 
@@ -661,7 +661,7 @@
 ))
 
 #v(0.38em)
-#quote-card([Würd’s keinem empfehlen, aber schlecht fand ich es auch nicht], source: [rückblickende Einschätzung])
+#quote-card([Würd’s keinem empfehlen, aber schlecht fand ich es auch nicht], source: [Rückblickende Einschätzung])
 
 // Ziel der Folie:
 // - Studienlage und Erfahrungsberichte nebeneinanderstellen
@@ -673,7 +673,7 @@
 // - Statistik heißt: Wahrscheinlichkeit steigt, nicht jeder einzelne Fall tritt ein
 // - Interviews sind nicht repräsentativ
 // - möglich: Schutzfaktoren, soziale Einbindung, reflektierter Umgang, geringere Frequenz
-== Studien vs. Erfahrung
+== Studien im Gegensatz zu Erfahrungen
 
 #bullet-list((
   [Risiko ist nicht gleich Schicksal],
