@@ -25,7 +25,7 @@
 
 #set page(
   fill: bg,
-  margin: (x: 0.82cm, y: 0.66cm),
+  margin: (left: 0.82cm, right: 0.82cm, top: 0.96cm, bottom: 0.36cm),
 )
 
 #set text(
@@ -61,6 +61,15 @@
 
 #let meta(body) = text(size: 14pt, fill: text-muted, tracking: 0.08em, weight: "medium")[#body]
 #let lead(body) = text(size: 19pt, fill: text-muted)[#body]
+#let icon(name, size: 1.05cm) = box(width: size, height: size)[
+  #image("assets/icons/" + name + ".svg", width: size)
+]
+
+#let icon-mark(name, size: 1.35cm) = align(right)[
+  #box(inset: 7pt, fill: panel-soft, stroke: 0.75pt + rgb("#2f5838"), radius: 999pt)[
+    #icon(name, size: size)
+  ]
+]
 
 #let bullet-list(items, width: 91%, spacing: 0.56em) = {
   let rendered = ()
@@ -91,6 +100,16 @@
   #text(size: 12pt, fill: tone, weight: "bold", tracking: 0.06em)[#title]
   #v(title-gap)
   #body
+]
+
+#let icon-note(name, label, body, tone: accent-strong, width: 100%, height: 3.8cm) = card(label, width: width, height: height, tone: tone)[
+  #grid(
+    columns: (1fr, auto),
+    gutter: 14pt,
+    align: horizon,
+    body,
+    icon(name, size: 1.45cm),
+  )
 ]
 
 #let outline-card(title, lines, height: 4.95cm) = card(title, height: height)[
@@ -146,7 +165,7 @@
 
 #let process-diagram() = box(
   width: 90%,
-  height: 5.5cm,
+  height: 6.5cm,
   inset: 10pt,
   fill: panel,
   stroke: 0.75pt + rgb("#25482f"),
@@ -266,7 +285,13 @@
 #empty-slide[
   #meta[PRÄSENTATION]
   #v(0.24em)
-  #text(font: "Times New Roman", size: 46pt, weight: "bold")[Cannabiskonsum im Jugendalter]
+  #grid(
+    columns: (1fr, auto),
+    gutter: 18pt,
+    align: horizon,
+    text(font: "Times New Roman", size: 46pt, weight: "bold")[Cannabiskonsum im Jugendalter],
+    icon("cannabis", size: 2.15cm),
+  )
   #v(0.28em)
   #lead[Welche neurobiologischen, psychischen und sozialen Folgen kann er haben?]
   #v(0.74em)
@@ -325,6 +350,8 @@
 
 #v(0.38em)
 #title-flow(([CanG 2024], [mehr Sichtbarkeit], [Jugendliche], [Risiken]))
+#v(0.12em)
+#icon-mark("scroll-text", size: 1.15cm)
 
 // Ziel der Folie:
 // - Leitfrage der Facharbeit setzen
@@ -398,6 +425,8 @@
   ([RAUSCH], [THC], warning),
   ([GEGENSPIELER], [CBD], accent),
 )
+#v(0.15em)
+#icon-mark("cannabis", size: 1.15cm)
 
 // Ziel der Folie:
 // - Endocannabinoid-System ohne Fachüberladung erklären
@@ -419,7 +448,12 @@
 ))
 
 #v(0.34em)
-#process-diagram()
+#grid(
+  columns: (1fr, auto),
+  gutter: 12pt,
+  process-diagram(),
+  icon-mark("brain", size: 1.2cm),
+)
 
 // Ziel der Folie:
 // - erklären, warum Jugendalter besonders relevant ist
@@ -468,6 +502,8 @@
   ([MOTORISCH], [unsicherer handeln], warning),
   ([PSYCHISCH], [Angst möglich], risk),
 )
+#v(0.12em)
+#icon-mark("clock", size: 1.1cm)
 
 // Ziel der Folie:
 // - konkrete Studienergebnisse verständlich machen
@@ -543,6 +579,8 @@
   ([PSYCHE], [Risiko erhöht], warning),
   ([SOZIAL], [Schule / Beruf], risk),
 )
+#v(0.12em)
+#icon-mark("clock", size: 1.1cm)
 
 // Ziel der Folie:
 // - Suchtentwicklung verständlich erklären
@@ -592,6 +630,8 @@
   card([PERSON 2], height: 3.4cm, tone: warning)[#text(size: 18pt, weight: "bold")[20 Jahre]],
   card([PERSON 3], height: 3.4cm, tone: accent)[#text(size: 18pt, weight: "bold")[18 Jahre]],
 )
+#v(0.12em)
+#icon-mark("users-round", size: 1.1cm)
 
 // Ziel der Folie:
 // - zentrale Interviewergebnisse knapp darstellen
@@ -707,7 +747,7 @@
 ))
 
 #v(0.42em)
-#card([MITNEHMEN], width: 88%, height: 3.8cm, tone: accent-strong)[
+#card([MITNEHMEN], width: 88%, height: 3.8cm, tone: accent-strong, title-gap: -1.8em)[
   #align(center + horizon)[
     #text(font: "Times New Roman", size: 27pt, fill: accent-strong, weight: "bold")[Risiko steigt, auch wenn Folgen nicht garantiert sind.]
   ]
