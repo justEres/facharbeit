@@ -225,6 +225,25 @@
   )
 ]
 
+#let source-entry(author, title, meta) = block[
+  #grid(
+    columns: (0.28cm, 1fr),
+    gutter: 0.16cm,
+    align: top,
+    text(fill: accent-strong, size: 5.8pt)[•],
+    [
+      #text(fill: text-main, weight: "bold")[#author]
+      #linebreak()
+      #text(fill: text-muted)[#title]
+      #linebreak()
+      #text(fill: accent)[#meta]
+      #v(1.24em)
+    ],
+  )
+]
+
+#let source-column(items) = stack(spacing: 0.39em, ..items)
+
 #let method-map() = box(width: 88%)[
   #grid(
     columns: (1fr, auto, 1fr, auto, 1fr),
@@ -752,29 +771,29 @@
 // - Erfahrungsberichte sind in der Facharbeit zusätzlich dokumentiert
 == Quellen
 
-#set text(size: 6.7pt, fill: text-muted)
-#set par(leading: 0.72em)
+#set text(size: 7.25pt, fill: text-muted)
+#set par(leading: 0.82em)
 #grid(
   columns: (1fr, 1fr),
-  gutter: 14pt,
-  [
-    ALBAUGH, Matthew D. et al. Association of Cannabis Use During Adolescence With Neurodevelopment. JAMA Psychiatry. 2021. DOI: 10.1001/jamapsychiatry.2021.1258\
-    CHAN, Olsen et al. Cannabis Use During Adolescence and Young Adulthood and Academic Achievement. JAMA Pediatrics. 2024. DOI: 10.1001/jamapediatrics.2024.3674\
-    GHOSH, Dipayan et al. Monoecious Cannabis sativa L. Journal of Applied Research on Medicinal and Aromatic Plants. 2023. DOI: 10.1016/j.jarmap.2023.100476\
-    HIRVONEN, J. et al. Reversible and regionally selective downregulation of brain cannabinoid CB1 receptors. Molecular Psychiatry. 2012. DOI: 10.1038/mp.2011.82\
-    HITCHCOCK, Leah N. et al. Acute Effects of Cannabis Concentrate on Motor Control and Speed. Frontiers in Psychiatry. 2020. DOI: 10.3389/fpsyt.2020.623672\
-    HOURFANE, Sohaib et al. A Comprehensive Review on Cannabis sativa. Plants. 2023. DOI: 10.3390/plants12061245\
-    IVERSEN, Leslie. Cannabis and the brain. Brain. 2003. DOI: 10.1093/brain/awg143\
-    JORDAN, Susanne. Der Cannabiskonsum von Jugendlichen als Herausforderung für die pädagogische Arbeit. 2007. BZgA.\
-  ],
-  [
-    KEUNG, Man Yee et al. Cannabis-Induced Anxiety Disorder in the Emergency Department. Cureus. 2023. DOI: 10.7759/cureus.38158\
-    KIBURI, Sarah Kanana et al. Cannabis use in adolescence and risk of psychosis. Substance Abuse. 2021. DOI: 10.1080/08897077.2021.1876200\
-    PAIGE, Katie J. and Craig R. COLDER. Long-Term Effects of Early Adolescent Marijuana Use. Journal of Studies on Alcohol and Drugs. 2020. DOI: 10.15288/jsad.2020.81.164\
-    PERTWEE, R. G. The diverse CB1 and CB2 receptor pharmacology of three plant cannabinoids. British Journal of Pharmacology. 2008. DOI: 10.1038/sj.bjp.0707442\
-    RAMAEKERS, Johannes G. et al. High-Potency Marijuana Impairs Executive Function and Inhibitory Motor Control. Neuropsychopharmacology. 2006. DOI: 10.1038/sj.npp.1301068\
-    WADE, Natasha E. et al. Cannabis use and neurocognitive performance at 13-14 Years-Old. Addictive Behaviors. 2024. DOI: 10.1016/j.addbeh.2023.107930\
-    WALKER, J. Michael and Susan M. HUANG. Cannabinoid analgesia. Pharmacology & Therapeutics. 2002. DOI: 10.1016/s0163-7258(02)00252-8\
-    Bundesgesetzblatt Teil I. Gesetz zum kontrollierten Umgang mit Cannabis und zur Änderung weiterer Vorschriften. Zugriff: 24.01.2026.\
-  ],
+  gutter: 18pt,
+  source-column((
+    source-entry([ALBAUGH et al.], [Cannabis Use During Adolescence With Neurodevelopment], [JAMA Psychiatry, 2021 · DOI: 10.1001/jamapsychiatry.2021.1258]),
+    source-entry([CHAN et al.], [Cannabis Use During Adolescence and Young Adulthood and Academic Achievement], [JAMA Pediatrics, 2024 · DOI: 10.1001/jamapediatrics.2024.3674]),
+    source-entry([GHOSH et al.], [Monoecious Cannabis sativa L.], [Journal of Applied Research on Medicinal and Aromatic Plants, 2023 · DOI: 10.1016/j.jarmap.2023.100476]),
+    source-entry([HIRVONEN et al.], [Downregulation of brain cannabinoid CB1 receptors], [Molecular Psychiatry, 2012 · DOI: 10.1038/mp.2011.82]),
+    source-entry([HITCHCOCK et al.], [Acute Effects of Cannabis Concentrate on Motor Control and Speed], [Frontiers in Psychiatry, 2020 · DOI: 10.3389/fpsyt.2020.623672]),
+    source-entry([HOURFANE et al.], [Comprehensive Review on Cannabis sativa], [Plants, 2023 · DOI: 10.3390/plants12061245]),
+    source-entry([IVERSEN], [Cannabis and the brain], [Brain, 2003 · DOI: 10.1093/brain/awg143]),
+    source-entry([JORDAN], [Der Cannabiskonsum von Jugendlichen als Herausforderung für die pädagogische Arbeit], [BZgA, 2007]),
+  )),
+  source-column((
+    source-entry([KEUNG et al.], [Cannabis-Induced Anxiety Disorder in the Emergency Department], [Cureus, 2023 · DOI: 10.7759/cureus.38158]),
+    source-entry([KIBURI et al.], [Cannabis use in adolescence and risk of psychosis], [Substance Abuse, 2021 · DOI: 10.1080/08897077.2021.1876200]),
+    source-entry([PAIGE / COLDER], [Long-Term Effects of Early Adolescent Marijuana Use], [Journal of Studies on Alcohol and Drugs, 2020 · DOI: 10.15288/jsad.2020.81.164]),
+    source-entry([PERTWEE], [CB1 and CB2 receptor pharmacology of plant cannabinoids], [British Journal of Pharmacology, 2008 · DOI: 10.1038/sj.bjp.0707442]),
+    source-entry([RAMAEKERS et al.], [High-Potency Marijuana Impairs Executive Function and Inhibitory Motor Control], [Neuropsychopharmacology, 2006 · DOI: 10.1038/sj.npp.1301068]),
+    source-entry([WADE et al.], [Cannabis use and neurocognitive performance at 13-14 Years-Old], [Addictive Behaviors, 2024 · DOI: 10.1016/j.addbeh.2023.107930]),
+    source-entry([WALKER / HUANG], [Cannabinoid analgesia], [Pharmacology & Therapeutics, 2002 · DOI: 10.1016/s0163-7258(02)00252-8]),
+    source-entry([Bundesgesetzblatt Teil I], [Gesetz zum kontrollierten Umgang mit Cannabis und zur Änderung weiterer Vorschriften], [Zugriff: 24.01.2026]),
+  )),
 )
