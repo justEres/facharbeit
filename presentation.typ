@@ -65,10 +65,8 @@
   #image("assets/icons/" + name + ".svg", width: size)
 ]
 
-#let icon-mark(name, size: 1.35cm) = align(right)[
-  #box(inset: 7pt, fill: panel-soft, stroke: 0.75pt + rgb("#2f5838"), radius: 999pt)[
-    #icon(name, size: size)
-  ]
+#let header-icon(name, size: 1.55cm) = place(top + right, dx: -0.25cm, dy: 0.02cm)[
+  #icon(name, size: size)
 ]
 
 #let bullet-list(items, width: 91%, spacing: 0.56em) = {
@@ -290,7 +288,7 @@
     gutter: 18pt,
     align: horizon,
     text(font: "Times New Roman", size: 46pt, weight: "bold")[Cannabiskonsum im Jugendalter],
-    icon("cannabis", size: 2.15cm),
+    icon("cannabis", size: 2.35cm),
   )
   #v(0.28em)
   #lead[Welche neurobiologischen, psychischen und sozialen Folgen kann er haben?]
@@ -341,6 +339,7 @@
 // - Frage an Publikum möglich: was verbindet ihr eher mit Cannabis, Entspannung oder Risiko?
 // - Übergang: die Arbeit fragt nicht nur politisch, sondern biologisch und sozial
 == Warum das Thema aktuell ist
+#header-icon("scroll-text", size: 1.6cm)
 
 #bullet-list((
   [Cannabisgesetz seit 1. April 2024],
@@ -350,8 +349,6 @@
 
 #v(0.38em)
 #title-flow(([CanG 2024], [mehr Sichtbarkeit], [Jugendliche], [Risiken]))
-#v(0.12em)
-#icon-mark("scroll-text", size: 1.15cm)
 
 // Ziel der Folie:
 // - Leitfrage der Facharbeit setzen
@@ -371,7 +368,7 @@
 ))
 
 #v(0.38em)
-#card([LEITFRAGE], width: 86%, height: 3.15cm, tone: warning)[
+#card([LEITFRAGE], width: 86%, height: 3.15cm, tone: warning, title-gap: -1.4em)[
   #align(center + horizon)[
     #text(font: "Times New Roman", size: 23pt, weight: "bold")[Welche Folgen kann Cannabiskonsum im Jugendalter haben?]
   ]
@@ -412,6 +409,7 @@
 // - CBD: nicht klassisch berauschend, kann indirekt wirken, wird oft als abschwächend beschrieben
 // - wichtig: Cannabis ist nicht ein einzelner Stoff, sondern ein Stoffgemisch
 == Was ist Cannabis?
+#header-icon("cannabis", size: 1.6cm)
 
 #bullet-list((
   [Cannabis sativa als Hanfpflanze],
@@ -425,8 +423,6 @@
   ([RAUSCH], [THC], warning),
   ([GEGENSPIELER], [CBD], accent),
 )
-#v(0.15em)
-#icon-mark("cannabis", size: 1.15cm)
 
 // Ziel der Folie:
 // - Endocannabinoid-System ohne Fachüberladung erklären
@@ -440,6 +436,7 @@
 // - THC bindet an CB1 und imitiert diesen Mechanismus
 // - Problem: Hemmung passiert nicht unbedingt passend zum tatsächlichen Bedarf
 == Wie wirkt THC?
+#header-icon("brain", size: 1.6cm)
 
 #bullet-list((
   [THC bindet an CB1-Rezeptoren],
@@ -448,12 +445,7 @@
 ))
 
 #v(0.34em)
-#grid(
-  columns: (1fr, auto),
-  gutter: 12pt,
-  process-diagram(),
-  icon-mark("brain", size: 1.2cm),
-)
+#process-diagram()
 
 // Ziel der Folie:
 // - erklären, warum Jugendalter besonders relevant ist
@@ -466,6 +458,7 @@
 // - Arbeit nennt Veränderungen wie verstärkte Ausdünnung im präfrontalen Cortex
 // - besonders relevant bei frühem Beginn und höherer Dosis
 == Warum Jugendliche besonders empfindlich sind
+#header-icon("brain", size: 1.6cm)
 
 #bullet-list((
   [Gehirn reift bis Mitte zwanzig],
@@ -489,6 +482,7 @@
 // - sozial: Schule, Mitarbeit, Alltag können leiden
 // - wichtig: Intensität hängt von Person, Dosis, Potenz und Mischkonsum ab
 == Kurzfristige Folgen
+#header-icon("clock", size: 1.6cm)
 
 #bullet-list((
   [Konzentration und Gedächtnis],
@@ -502,8 +496,6 @@
   ([MOTORISCH], [unsicherer handeln], warning),
   ([PSYCHISCH], [Angst möglich], risk),
 )
-#v(0.12em)
-#icon-mark("clock", size: 1.1cm)
 
 // Ziel der Folie:
 // - konkrete Studienergebnisse verständlich machen
@@ -566,6 +558,7 @@
 // - Sucht: früher Einstieg erhöht Wahrscheinlichkeit für Abhängigkeit
 // - sozial: Schule, Abschlüsse, Berufsweg, soziale Integration
 == Langfristige Folgen
+#header-icon("clock", size: 1.6cm)
 
 #bullet-list((
   [Entwicklung des Gehirns],
@@ -579,8 +572,6 @@
   ([PSYCHE], [Risiko erhöht], warning),
   ([SOZIAL], [Schule / Beruf], risk),
 )
-#v(0.12em)
-#icon-mark("clock", size: 1.1cm)
 
 // Ziel der Folie:
 // - Suchtentwicklung verständlich erklären
@@ -615,6 +606,7 @@
 // - Ziel: Studienlage einordnen, nicht repräsentativ beweisen
 // - wichtige Einschränkung: kleine Stichprobe, subjektive Erinnerung
 == Eigene Erfahrungsberichte
+#header-icon("users-round", size: 1.6cm)
 
 #bullet-list((
   [Drei befragte Personen],
@@ -630,8 +622,6 @@
   card([PERSON 2], height: 3.4cm, tone: warning)[#text(size: 18pt, weight: "bold")[20 Jahre]],
   card([PERSON 3], height: 3.4cm, tone: accent)[#text(size: 18pt, weight: "bold")[18 Jahre]],
 )
-#v(0.12em)
-#icon-mark("users-round", size: 1.1cm)
 
 // Ziel der Folie:
 // - zentrale Interviewergebnisse knapp darstellen
