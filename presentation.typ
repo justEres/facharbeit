@@ -431,14 +431,14 @@
 #header-icon("cannabis", size: 1.6cm)
 
 #bullet-list((
-  [#text(font: "Times New Roman", style: "italic")[Cannabis sativa] als Hanfpflanze],
+  [#text(font: "Libertinus Serif", style: "italic")[Cannabis sativa] als Hanfpflanze],
   [Viele Cannabinoide und Terpene],
   [Im Fokus: THC und CBD],
 ))
 
 #v(0.38em)
 #triad(
-  ([PFLANZE], [Cannabis sativa], accent-strong),
+  ([PFLANZE], [#text(font: "Libertinus Serif", style: "italic")[Cannabis sativa]] , accent-strong),
   ([RAUSCH], [THC], warning),
   ([GEGENSPIELER], [CBD], accent),
 )
