@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Eres Playground</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <p class="eyebrow">Browser Playground</p>
+        <h1>Eres Playground</h1>
+      </header>
+
+      <main class="workspace">
+        <section class="panel controls-panel">
+          <div class="controls-row">
+            <label class="field">
+              <span>Example</span>
+              <select id="example-select"></select>
+            </label>
+
+            <label class="field">
+              <span>Main arguments</span>
+              <input id="main-args" type="text" placeholder="e.g. 7, 5">
+            </label>
+          </div>
+
+          <div class="actions">
+            <button id="compile-button" type="button">Compile</button>
+            <button id="run-button" type="button">Run</button>
+          </div>
+
+          <div class="status-strip">
+            <span id="compiler-status">Loading compiler...</span>
+            <span id="main-arity">main arity: -</span>
+          </div>
+        </section>
+
+        <section class="panel editor-panel">
+          <div class="panel-heading">
+            <h2>Source</h2>
+          </div>
+          <div class="editor-stack">
+            <pre id="source-highlighted" aria-hidden="true"></pre>
+            <textarea id="source-editor" spellcheck="false"></textarea>
+          </div>
+        </section>
+
+        <div
+          id="pane-divider"
+          class="pane-divider"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize source and inspector panes"
+        ></div>
+
+        <section class="panel inspector-panel">
+          <div class="panel-heading">
+            <h2>Inspector</h2>
+            <div class="ast-zoom-controls">
+              <button id="ast-zoom-out" type="button" title="Zoom out">-</button>
+              <button id="ast-zoom-reset" type="button" title="Reset zoom">100%</button>
+              <button id="ast-zoom-in" type="button" title="Zoom in">+</button>
+            </div>
+          </div>
+          <div class="tab-strip" role="tablist" aria-label="Inspector tabs">
+            <button class="tab-button is-active" id="tab-tokens" type="button" data-tab="tokens" role="tab" aria-selected="true">Tokens</button>
+            <button class="tab-button" id="tab-ast" type="button" data-tab="ast" role="tab" aria-selected="false">AST</button>
+            <button class="tab-button" id="tab-wat" type="button" data-tab="wat" role="tab" aria-selected="false">WAT</button>
+          </div>
+          <div class="tab-panels">
+            <div id="tokens-output" class="tab-panel is-active" data-panel="tokens" role="tabpanel" aria-labelledby="tab-tokens"></div>
+            <div id="ast-output" class="tab-panel" data-panel="ast" role="tabpanel" aria-labelledby="tab-ast"></div>
+            <pre id="wat-output" class="tab-panel wat-panel" data-panel="wat" role="tabpanel" aria-labelledby="tab-wat"><code id="wat-code" class="language-wasm"></code></pre>
+          </div>
+        </section>
+
+        <section class="panel runtime-panel">
+          <div class="panel-heading">
+            <h2>Output</h2>
+          </div>
+          <pre id="runtime-output"></pre>
+        </section>
+      </main>
+    </div>
+
+    <script src="./vendor/highlightjs/highlight.min.js"></script>
+    <script src="./vendor/highlightjs/wasm-browser.min.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

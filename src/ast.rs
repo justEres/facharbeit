@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use serde::Serialize;
+
+#[derive(Debug, Serialize)]
 pub enum Expr {
     Int(i64),
     Local(String),
@@ -13,7 +15,7 @@ pub enum Expr {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum BinOp {
     Add,
     Sub,
@@ -27,7 +29,7 @@ pub enum BinOp {
     Ge,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum Stmt {
     Let {
         name: String,
@@ -46,7 +48,7 @@ pub enum Stmt {
     },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct FunctionDecl {
     pub name: String,
     pub params: Vec<String>,
@@ -54,12 +56,12 @@ pub struct FunctionDecl {
     pub return_type: Option<Type>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum Type {
     Int,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Program {
     pub functions: Vec<FunctionDecl>,
 }

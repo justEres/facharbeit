@@ -73,6 +73,26 @@ factorial.eres
 add.eres
 ```
 
+## Browser Playground
+
+Auf dem Branch `browser-playground` gibt es zusätzlich ein statisches Playground-Frontend in [`playground/`](./playground/).
+Der Compiler wird dabei nach WebAssembly kompiliert und direkt im Browser ausgeführt.
+
+Der Playground zeigt:
+
+* Tokens
+* AST
+* Generiertes WAT
+* Laufzeitausgabe der kompilierten `main`-Funktion
+
+Build:
+
+```bash
+./scripts/build-playground.sh
+```
+
+Danach kann `playground/` mit einem beliebigen statischen Webserver ausgeliefert werden.
+
 ---
 
 ## Facharbeit kompilieren

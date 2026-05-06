@@ -1,13 +1,6 @@
 use clap::Parser;
-
-use crate::codegen::module::ModuleGen;
-
-mod ast;
-mod codegen;
-mod lexer;
-mod parser;
-mod runner;
-mod token;
+use facharbeit::compile_source_details;
+use facharbeit::runner::run_wasm_bytes;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -32,62 +25,31 @@ fn main() {
     let args = Args::parse();
 
     let src = std::fs::read_to_string(&args.input).expect("Failed to read input file");
-
-    let bytes = match lexer::lex_file(&src) {
-        Ok(tokens) => {
-            if args.print_tokens {
-                println!("Tokens:\n{:#?}", tokens);
-            }
-
-            let mut parser = parser::Parser::new(&tokens);
-            let ast = parser.parse_program().unwrap();
-
-            if args.print_ast {
-                println!("AST:\n{:#?}", ast);
-            }
-
-            let mut module_gen = ModuleGen::new();
-            module_gen = module_gen.init_with_host_functions();
-
-            // Declare first, then emit, so functions can reference each other.
-            for func in &ast.functions {
-                module_gen.declare_function(func);
-            }
-            for func in &ast.functions {
-                module_gen.emit_function(func);
-            }
-
-            let bytes = module_gen.finish();
-
-            // Determine the arity of main to prepare call arguments.
-            let main_param_count = ast
-                .functions
-                .iter()
-                .find(|f| f.name == "main")
-                .map(|f| f.params.len())
-                .unwrap_or(0);
-
-            Some((bytes, args.print_wat, main_param_count))
-        }
-        Err(e) => {
-            lexer::report_lex_error(&src, e);
-            None
+    let result = match compile_source_details(&src) {
+        Ok(result) => result,
+        Err(error) => {
+            eprintln!("{error}");
+            return;
         }
     };
 
-    if let Some((bytes, print_wat, param_count)) = bytes {
-        let wat = wasmprinter::print_bytes(&bytes).unwrap();
-        if print_wat {
-            println!("Generated WAT:\n{}", wat);
-        }
+    if args.print_tokens {
+        println!("Tokens:\n{}", result.tokens);
+    }
 
-        // Prepare zero-initialized i64 args matching the function's param count.
-        let args: Vec<i64> = vec![0; param_count];
+    if args.print_ast {
+        println!("AST:\n{}", result.ast);
+    }
 
-        match runner::run_wasm_bytes(&bytes, args) {
-            Ok(Some(result)) => println!("result of main function: {}", result),
-            Ok(None) => println!("main returned no value"),
-            Err(e) => eprintln!("Execution error: {}", e),
-        }
+    if args.print_wat {
+        println!("Generated WAT:\n{}", result.wat);
+    }
+
+    let args: Vec<i64> = vec![0; result.main_param_count];
+
+    match run_wasm_bytes(&result.wasm_bytes, args) {
+        Ok(Some(value)) => println!("result of main function: {}", value),
+        Ok(None) => println!("main returned no value"),
+        Err(error) => eprintln!("Execution error: {}", error),
     }
 }

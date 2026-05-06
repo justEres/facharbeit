@@ -1,28 +1,10 @@
-use std::sync::{Arc, Mutex};
 use wasmtime::{Engine, Instance, Store, Val};
 
-use crate::codegen::module::ModuleGen;
-use crate::lexer::lex_file;
-use crate::parser::Parser;
+use crate::compile_to_wasm_bytes;
 
 /// Compile source to wasm bytes.
 pub fn compile_bytes_from_src(src: &str) -> Result<Vec<u8>, String> {
-    let tokens = lex_file(src).map_err(|e| format!("lex error: {:?}", e))?;
-    let mut parser = Parser::new(&tokens);
-    let program = parser
-        .parse_program()
-        .map_err(|e| format!("parse error: {:?}", e))?;
-
-    // Register host imports (print), then declare and emit all functions.
-    let mut module_gen = ModuleGen::new().init_with_host_functions();
-    for func in &program.functions {
-        module_gen.declare_function(func);
-    }
-    for func in &program.functions {
-        module_gen.emit_function(func);
-    }
-    let bytes = module_gen.finish();
-    Ok(bytes)
+    compile_to_wasm_bytes(src)
 }
 
 /// Run wasm bytes calling `main` with the provided i64 arguments.
@@ -79,6 +61,7 @@ pub fn run_source(src: &str, args: Vec<i64>) -> Result<Option<i64>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Arc, Mutex};
 
     #[test]
     fn run_if_gt_sample() {
